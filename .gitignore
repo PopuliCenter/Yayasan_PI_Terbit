@@ -1,0 +1,19 @@
+# Rahasia stack VPS
+.env
+!.env.example
+# HANYA folder htpasswd di root. JANGAN "staging/" tanpa "/" depan: itu ikut mengabaikan deploy/staging/.
+/staging/
+
+# Panduan deploy memuat peta VPS (domain lain, nama container, insiden).
+# Disimpan privat di luar repo — panduan §0 dan N21.
+panduan-deploy-toko-buku-vps.md
+
+# Alat lokal
+.claude/
+*.log
+.DS_Store
+Thumbs.db
+
+# Uji lokal/CI
+.uji/
+.build-uji.log

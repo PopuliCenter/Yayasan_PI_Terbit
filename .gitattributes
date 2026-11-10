@@ -1,0 +1,7 @@
+# Repo ini dikembangkan di Windows tapi dijalankan di Linux (VPS, CI, container).
+# CRLF merusak skrip bash ("$'\r': command not found") dan config nginx. Paksa LF.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary

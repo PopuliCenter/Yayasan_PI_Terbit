@@ -1,0 +1,125 @@
+# docker-compose.yml — stack situs penerbit (produksi DAN staging)
+#
+# Mode sederhana: Next.js + Payload dalam satu image `app`, Postgres, dan toko-proxy.
+# Tidak ada Redis, worker, atau webhook pembayaran.
+#
+# Aturan dari panduan deploy (§2, §6.3):
+#   N1  tanpa `ports:` sama sekali — hanya edge yang memegang 80/443
+#   N2  hanya toko_proxy yang punya container_name dan join network `web`
+#   W11 tiap service: mem_limit, rotasi log, healthcheck ke 127.0.0.1, oom_score_adj
+#   W12 Postgres tanpa port host; volume data `external` dengan nama eksplisit
+name: ${STACK_NAME:?STACK_NAME wajib diisi di .env}
+
+x-logging: &default-logging            # rotasi log (pola survei)
+  driver: json-file
+  options: { max-size: '10m', max-file: '3' }
+
+# Env aplikasi. Dibaca saat runtime; tidak ada yang ditanam di image.
+x-app-env: &app-env
+  NODE_ENV: production
+  STACK_NAME: ${STACK_NAME}
+  DATABASE_ADAPTER: postgres
+  # Sandi dibuat `openssl rand -hex 32`: aman di URL koneksi tanpa encoding.
+  DATABASE_URL: postgres://${DB_USER:?DB_USER wajib}:${DB_PASSWORD:?DB_PASSWORD wajib}@db:5432/${DB_NAME:?DB_NAME wajib}
+  PAYLOAD_SECRET: ${PAYLOAD_SECRET:?PAYLOAD_SECRET wajib}
+  SITE_URL: ${PUBLIC_BASE_URL:?PUBLIC_BASE_URL wajib}
+  ADMIN_BASE_URL: ${ADMIN_BASE_URL:?ADMIN_BASE_URL wajib}
+  SITE_INDEXABLE: ${SITE_INDEXABLE:-false}
+  MEDIA_DIR: /app/files/media
+  PRIVATE_FILES_DIR: /app/files/private
+
+services:
+  db:
+    image: postgres:17.11-alpine3.24     # tag persis; samakan dengan job e2e CI
+    logging: *default-logging
+    restart: unless-stopped
+    oom_score_adj: 300                    # kernel memilih toko lebih dulu daripada app lain
+    mem_limit: 512m
+    cpus: 0.75
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    command: ['postgres', '-c', 'shared_buffers=128MB', '-c', 'max_connections=50']
+    volumes: ['db_data:/var/lib/postgresql/data']
+    networks: [internal]                  # TANPA ports: 127.0.0.1:5432 dipakai survei
+    shm_size: 128m
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  migrate:                                # sekali jalan: docker compose run --rm migrate
+    image: ${IMAGE_REPO:?IMAGE_REPO wajib, mis. ghcr.io/owner}/toko-migrate:${IMAGE_TAG:?IMAGE_TAG wajib, isi sha-<commit>}
+    profiles: ['tools']                   # tidak ikut `up -d`
+    restart: 'no'
+    logging: *default-logging
+    oom_score_adj: 300
+    mem_limit: 512m
+    environment:
+      <<: *app-env
+      NODE_OPTIONS: --max-old-space-size=384
+    volumes: ['files:/app/files']         # dipakai `npm run seed` di staging
+    networks: [internal]
+    depends_on: { db: { condition: service_healthy } }
+
+  app:
+    image: ${IMAGE_REPO}/toko-app:${IMAGE_TAG}
+    logging: *default-logging
+    restart: unless-stopped
+    oom_score_adj: 300
+    mem_limit: 768m
+    cpus: 1
+    environment:
+      <<: *app-env
+      HOSTNAME: 0.0.0.0                   # wajib untuk Next.js standalone di Docker
+      PORT: '3000'
+      NODE_OPTIONS: --max-old-space-size=576   # heap ±75% limit
+      CF_ACCESS_TEAM_DOMAIN: ${CF_ACCESS_TEAM_DOMAIN:-}   # kosong = semua akses admin ditolak
+      CF_ACCESS_AUD: ${CF_ACCESS_AUD:-}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+    expose: ['3000']
+    volumes: ['files:/app/files']         # sampul (media) + berkas privat
+    networks:
+      internal: { aliases: [toko-app] }
+    depends_on: { db: { condition: service_healthy } }
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000/healthz >/dev/null || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  toko_proxy:                             # nama service ≠ container_name mana pun (N2)
+    image: ${IMAGE_REPO}/toko-proxy:${IMAGE_TAG}
+    container_name: ${PROXY_CONTAINER_NAME:?PROXY_CONTAINER_NAME wajib}   # toko-proxy / toko-staging-proxy
+    logging: *default-logging
+    restart: unless-stopped
+    oom_score_adj: 300
+    mem_limit: 64m
+    cpus: 0.25
+    environment:
+      WEB_SUBNET: ${WEB_SUBNET:?WEB_SUBNET wajib}
+      ADMIN_HOST: ${ADMIN_HOST:?ADMIN_HOST wajib}
+    expose: ['80']                        # JANGAN publish 80/443
+    networks: [internal, web]             # satu-satunya service stack ini di web
+    depends_on:
+      app: { condition: service_healthy }
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1/nginx-health >/dev/null || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:                                  # external: Compose GAGAL bila nama salah, tidak membuat DB kosong
+  db_data: { external: true, name: '${DB_VOLUME:?DB_VOLUME wajib}' }
+  files:   { external: true, name: '${FILES_VOLUME:?FILES_VOLUME wajib}' }
+
+networks:
+  internal: {}                            # TANPA name: → <STACK_NAME>_internal
+  web:
+    external: true                        # jangan pernah dibuat oleh stack ini (N8)

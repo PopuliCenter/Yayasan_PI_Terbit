@@ -1,0 +1,193 @@
+@import "tailwindcss";
+
+/*
+ * Sistem desain situs penerbit.
+ * Palet navy + oranye dan pasangan Inter / Source Serif 4 mengikuti situs Populi Center
+ * agar terasa satu keluarga. Latar dibuat terang ("kertas") supaya sampul buku menonjol.
+ * Semua pasangan teks/latar di bawah lolos WCAG 2.1 AA (≥ 4,5:1 untuk teks biasa).
+ */
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, Cambria, serif;
+}
+
+@theme {
+  --color-primary-50: #eef4fb;
+  --color-primary-100: #d6e4f5;
+  --color-primary-200: #aecae9;
+  --color-primary-300: #7ba6d8;
+  --color-primary-400: #4d80c4;
+  --color-primary-500: #2f63ab;
+  --color-primary-600: #234e8c;
+  --color-primary-700: #1c3f72;
+  --color-primary-800: #16315a;
+  --color-primary-900: #0f2342;
+  --color-primary-950: #08172e;
+
+  --color-accent-50: #fff8ed;
+  --color-accent-100: #feefd0;
+  --color-accent-200: #fcdca0;
+  --color-accent-300: #f9c265;
+  --color-accent-400: #f6a23a;
+  --color-accent-500: #f08519;
+  --color-accent-600: #e16a0f;
+  --color-accent-700: #bb4f10;
+  --color-accent-800: #953f15;
+
+  --color-paper: #faf8f4;
+  --color-paper-2: #f2eee6;
+  --color-ink: #0f2342;
+  --color-body: #2f3b4f;
+  --color-muted: #5a6476;
+  --color-line: #e3ddd1;
+
+  /* Hijau WhatsApp yang digelapkan: #11734b vs putih = 5,6:1. */
+  --color-wa: #11734b;
+  --color-wa-hover: #0c5a3a;
+
+  --color-ok: #166534;
+  --color-warn: #92400e;
+  --color-off: #57534e;
+  --color-info: #1e40af;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-paper);
+    color: var(--color-body);
+    font-family: var(--font-sans);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-serif);
+    color: var(--color-ink);
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  ::selection {
+    background: var(--color-accent-200);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-accent-500);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}
+
+/*
+ * Kelas komponen. Di Tailwind v4, kelas yang dipakai ulang lewat @apply harus
+ * didefinisikan dengan @utility (bukan @layer components).
+ */
+@utility page-container {
+  @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+}
+
+@utility skip-link {
+  @apply absolute left-2 top-2 z-50 -translate-y-24 rounded bg-primary-900 px-4 py-3 text-white transition-transform focus:translate-y-0;
+}
+
+@utility eyebrow {
+  @apply text-xs font-semibold uppercase tracking-[0.14em] text-muted;
+}
+
+/* Area sentuh minimal 44 px (NFR mobile-first). */
+@utility btn {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-5 py-2.5 text-[0.95rem] font-semibold transition-colors duration-150 disabled:pointer-events-none disabled:opacity-60;
+}
+
+@utility btn-primary {
+  @apply btn bg-primary-900 text-white hover:bg-primary-700;
+}
+
+@utility btn-wa {
+  @apply btn bg-wa text-white hover:bg-wa-hover;
+}
+
+@utility btn-outline {
+  @apply btn border border-line bg-white text-ink hover:border-primary-300 hover:bg-primary-50;
+}
+
+@utility btn-ghost {
+  @apply btn text-ink hover:bg-paper-2;
+}
+
+@utility link {
+  @apply text-primary-700 underline decoration-primary-200 underline-offset-[3px] hover:decoration-primary-700;
+}
+
+@utility field-label {
+  @apply mb-1.5 block text-sm font-semibold text-ink;
+}
+
+@utility field-input {
+  @apply block min-h-11 w-full rounded-md border border-line bg-white px-3 py-2 text-[0.95rem] text-ink placeholder:text-muted/80 focus:border-primary-500;
+}
+
+@utility card {
+  @apply rounded-lg border border-line bg-white;
+}
+
+/* Teks kaya dari CMS (sinopsis, halaman, kabar), tanpa plugin typography. */
+@utility prose-populi {
+  @apply max-w-none text-[1.0625rem] leading-relaxed text-body;
+
+  & > * + * {
+    @apply mt-4;
+  }
+  & h2 {
+    @apply mt-10 text-2xl font-semibold;
+  }
+  & h3 {
+    @apply mt-8 text-xl font-semibold;
+  }
+  & h4 {
+    @apply mt-6 text-lg font-semibold;
+  }
+  & a {
+    @apply link;
+  }
+  & ul {
+    @apply list-disc pl-6;
+  }
+  & ol {
+    @apply list-decimal pl-6;
+  }
+  & li + li {
+    @apply mt-1.5;
+  }
+  & blockquote {
+    @apply border-l-4 border-accent-300 pl-4 font-serif text-lg italic text-ink;
+  }
+  & hr {
+    @apply my-8 border-line;
+  }
+  & strong {
+    @apply font-semibold text-ink;
+  }
+}

@@ -1,0 +1,135 @@
+# =============================================================================
+# toko-proxy (di-render saat container start → /etc/nginx/conf.d/toko.conf)
+# Hanya ${WEB_SUBNET} dan ${ADMIN_HOST} yang di-substitusi (NGINX_ENVSUBST_FILTER).
+#
+# Rantai IP klien: Cloudflare → edge (realip CF-Connecting-IP) → toko-proxy
+# (realip X-Forwarded-For, hanya dipercaya dari network web) → app (X-Real-IP).
+# =============================================================================
+
+# Resolve nama container saat permintaan (pola survei): proxy tetap start walau app
+# belum ada, dan tidak menyimpan IP lama setelah app di-recreate.
+resolver 127.0.0.11 valid=10s ipv6=off;
+
+# Percayai X-Forwarded-For HANYA dari network web (tempat edge berada).
+set_real_ip_from ${WEB_SUBNET};
+real_ip_header X-Forwarded-For;
+
+# Log: token di query (?t=, ?token= — mis. tautan berhenti berlangganan) disamarkan;
+# aset statis Next.js tidak dicatat.
+map $request_uri $toko_uri_log {
+    default                                         $request_uri;
+    "~^([^?]*\?(?:.*&)?(?:t|token)=)[^&]*(.*)$"     "$1***$2";
+}
+map $uri $toko_log_ok {
+    default            1;
+    ~^/_next/static/   0;
+}
+log_format toko_masked '$remote_addr [$time_local] "$request_method $toko_uri_log" '
+                       '$status $body_bytes_sent rt=$request_time host=$host';
+
+# Redirect nginx (mis. `return 302 /admin`) memakai Location relatif. Tanpa ini nginx
+# menulis http://<host>/... karena proxy ini listen di port 80 tanpa TLS.
+absolute_redirect off;
+
+# Uji lokal tanpa edge tidak mengirim X-Forwarded-Proto.
+map $http_x_forwarded_proto $toko_fwd_proto {
+    default $http_x_forwarded_proto;
+    ""      http;
+}
+
+# -----------------------------------------------------------------------------
+# Host publik: apex (produksi) atau staging.<domain>. Default server stack ini.
+# -----------------------------------------------------------------------------
+server {
+    listen 80 default_server;
+    server_name _;
+    access_log /dev/stdout toko_masked if=$toko_log_ok;
+    client_max_body_size 1m;                # formulir publik saja; unggahan hanya di host admin
+
+    # Staging: basic auth + X-Robots-Tag (deploy/staging/staging-extra.conf). Produksi: kosong.
+    # PENTING: jangan pakai add_header di location mana pun di server ini, karena
+    # add_header di location menghapus add_header warisan dari tingkat server.
+    include /etc/nginx/toko-extra/*.conf;
+
+    error_page 502 503 504 =503 /pemeliharaan.html;
+    location = /pemeliharaan.html { internal; auth_basic off; root /usr/share/nginx/pemeliharaan; }
+
+    location = /nginx-health { access_log off; auth_basic off; return 200 "ok\n"; }
+    location = /healthz {
+        auth_basic off;
+        set $toko_app toko-app;
+        proxy_pass http://$toko_app:3000/healthz;
+        include /etc/nginx/toko-headers.conf;
+    }
+
+    # Panel admin, API Payload, dan endpoint internal HANYA di host admin.
+    location = /admin      { return 404; }
+    location ^~ /admin/    { return 404; }
+    location ^~ /internal/ { return 404; }
+
+    # Pengecualian: berkas sampul publik (koleksi media, read: anyone).
+    location ^~ /api/media/file/ {
+        limit_except GET { deny all; }      # GET juga mengizinkan HEAD
+        # Route berkas Payload hanya melayani GET (HEAD → 404, terbukti di uji smoke).
+        # Kirim GET ke app; untuk permintaan HEAD nginx sendiri membuang body-nya.
+        proxy_method GET;
+        set $toko_app toko-app;
+        proxy_pass http://$toko_app:3000$request_uri;
+        include /etc/nginx/toko-headers.conf;
+    }
+    location ^~ /api/ { return 404; }
+
+    location / {
+        set $toko_app toko-app;
+        proxy_pass http://$toko_app:3000$request_uri;
+        include /etc/nginx/toko-headers.conf;
+        proxy_buffering off;                # streaming Next.js
+    }
+}
+
+# -----------------------------------------------------------------------------
+# Host admin: SEMUA permintaan wajib lolos JWT Cloudflare Access (panduan W15).
+# Gerbang ini berlaku juga untuk permintaan dari container lain di network web
+# dan dari IP origin langsung, yang tidak membawa JWT sah.
+# -----------------------------------------------------------------------------
+server {
+    listen 80;
+    server_name ${ADMIN_HOST};
+    access_log /dev/stdout toko_masked if=$toko_log_ok;
+    client_max_body_size 10m;               # unggah sampul (batas Payload 8 MB)
+
+    # Host admin tidak pernah boleh di-cache Cloudflare (bukti transfer, data pesanan,
+    # sesi admin). Header khusus CDN; tidak mengubah Cache-Control untuk peramban.
+    # PENTING: jangan pakai add_header di location mana pun di server ini.
+    add_header CDN-Cache-Control "no-store" always;
+    add_header Cloudflare-CDN-Cache-Control "no-store" always;
+    add_header X-Robots-Tag "noindex, nofollow" always;
+
+    error_page 502 504 =503 /pemeliharaan.html;
+    location = /pemeliharaan.html { internal; auth_request off; root /usr/share/nginx/pemeliharaan; }
+
+    auth_request /_toko_access;
+
+    location = /_toko_access {
+        internal;
+        auth_request off;
+        set $toko_app toko-app;
+        proxy_pass http://$toko_app:3000/internal/access-check;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header Host $host;
+        proxy_set_header Cf-Access-Jwt-Assertion $http_cf_access_jwt_assertion;
+        proxy_read_timeout 10s;
+    }
+
+    location = /nginx-health { auth_request off; access_log off; return 200 "ok\n"; }
+    location ^~ /internal/   { return 404; }
+    location = /             { return 302 /admin; }
+
+    location / {
+        set $toko_app toko-app;
+        proxy_pass http://$toko_app:3000$request_uri;
+        include /etc/nginx/toko-headers.conf;
+        proxy_buffering off;
+    }
+}

@@ -1,0 +1,27 @@
+# Rahasia dan data lokal TIDAK BOLEH masuk image (panduan N12).
+.env
+.env.*
+!.env.example
+**/.env
+penerbit.db
+penerbit.db-*
+media/
+uploads-private/
+
+# Hasil build dan dependensi dibangun ulang di dalam image
+node_modules
+.next
+out
+
+# Lain-lain
+.git
+.gitignore
+*.log
+npm-debug.log*
+.vscode
+.idea
+Dockerfile
+.dockerignore
+README.md
+AGENTS.md
+**/*.test.ts

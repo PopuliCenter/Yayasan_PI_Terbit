@@ -1,0 +1,16 @@
+[
+  {
+    "id": "1243084",
+    "paket": "happy-dom",
+    "advisory": "GHSA-834v-8h66-3h79 (unsanitized import alias → host code execution)",
+    "alasan": "Hanya dimuat lewat @lexical/headless/dom, yang dipakai satu-satunya oleh convertHTMLToLexical (konversi HTML → rich text). Situs tidak memanggilnya dan tidak mem-parse HTML dari luar. Perbaikan hanya di happy-dom 21.x (major) sementara @lexical/headless 0.50 meminta ^20.9.0.",
+    "kedaluwarsa": "2027-01-31"
+  },
+  {
+    "id": "1243623",
+    "paket": "happy-dom",
+    "advisory": "GHSA-c8p4-j97h-3vg8 (SSRF via iframe/link stylesheet saat parse HTML tak tepercaya)",
+    "alasan": "Sama dengan 1243084: jalur kode tidak terjangkau dari aplikasi. Nilai ulang saat Payload menaikkan versi Lexical.",
+    "kedaluwarsa": "2027-01-31"
+  }
+]

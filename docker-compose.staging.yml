@@ -1,0 +1,23 @@
+# docker-compose.staging.yml — HANYA staging. Dipakai lewat COMPOSE_FILE di .env staging:
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.staging.yml
+# Limit lebih kecil; oom_score_adj 800 → dikorbankan lebih dulu saat memori habis.
+services:
+  db:
+    mem_limit: 256m
+    memswap_limit: 256m
+    oom_score_adj: 800
+    command: ['postgres', '-c', 'shared_buffers=64MB', '-c', 'max_connections=30']
+  migrate:
+    mem_limit: 512m
+    oom_score_adj: 800
+  app:
+    mem_limit: 512m
+    memswap_limit: 512m
+    oom_score_adj: 800
+    environment:
+      NODE_OPTIONS: --max-old-space-size=384
+  toko_proxy:
+    oom_score_adj: 800
+    volumes:
+      - ./staging/htpasswd:/etc/nginx/toko-auth/htpasswd:ro                  # staging/ ada di .gitignore
+      - ./deploy/staging/staging-extra.conf:/etc/nginx/toko-extra/staging.conf:ro

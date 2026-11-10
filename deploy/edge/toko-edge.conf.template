@@ -1,0 +1,124 @@
+# =============================================================================
+# deploy/edge/toko-edge.conf.template  (repo toko; dirender oleh render_vhost di VPS)
+# Hasil di host      : /etc/toko-buku/edge/toko.conf
+# Di container edge  : /etc/nginx/conf.d/toko-__DOMAIN__.conf
+#
+# JANGAN hapus atau ganti nama berkas di /etc/toko-buku/edge/ sebelum baris
+# mount-nya dicabut dari docker-compose.override.yml edge (panduan §7.8). Sumber
+# mount yang hilang membuat edge gagal start, dan SEMUA domain di VPS ikut mati.
+#
+# - Semua server block toko (produksi + staging) ada di berkas ini.
+# - Tanpa default_server. Nama "toko-..." terurut setelah default.conf app lama.
+# - Zona Cloudflare toko WAJIB Full (strict): port 80 di sini hanya redirect.
+# - Nama tingkat http (map, geo, log_format, zone, upstream, variabel) berprefiks toko_.
+#   Jangan deklarasikan ssl_session_cache atau ssl_protocols di sini.
+# - Situs mode sederhana: tidak ada webhook pembayaran/ongkir.
+# =============================================================================
+
+# (1) Asal koneksi yang boleh masuk host toko. Dicek dari IP koneksi, sebelum realip.
+geo $realip_remote_addr $toko_src_ok {
+    default 0;
+    # __HOST_GW__
+    # __CF_GEO__
+}
+
+# (2) Log: token di query (?t=, ?token=) disamarkan; aset statis Next.js tidak dicatat
+map $request_uri $toko_uri_log {
+    default                                         $request_uri;
+    "~^([^?]*\?(?:.*&)?(?:t|token)=)[^&]*(.*)$"     "$1***$2";
+}
+map $uri $toko_log_ok {
+    default            1;
+    ~^/_next/static/   0;
+}
+log_format toko_masked '$remote_addr via=$realip_remote_addr [$time_local] '
+                       '"$request_method $toko_uri_log" $status $body_bytes_sent '
+                       'rt=$request_time host=$host';
+
+# (3) Port 80: hanya redirect. Semua host toko WAJIB terdaftar di sini,
+#     kalau tidak permintaan jatuh ke catch-all app lama.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name __DOMAIN__ www.__DOMAIN__ admin.__DOMAIN__
+                staging.__DOMAIN__ staging-admin.__DOMAIN__;
+    access_log /var/log/nginx/access.log toko_masked;
+    return 301 https://$host$request_uri;
+}
+
+# (4) www → apex
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name www.__DOMAIN__;
+    ssl_certificate     /etc/nginx/toko-certs/__DOMAIN__.pem;
+    ssl_certificate_key /etc/nginx/toko-certs/__DOMAIN__.key;
+    access_log /var/log/nginx/access.log toko_masked;
+    return 301 https://__DOMAIN__$request_uri;
+}
+
+# (5) Produksi: apex + admin → toko-proxy
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name __DOMAIN__ admin.__DOMAIN__;
+    ssl_certificate     /etc/nginx/toko-certs/__DOMAIN__.pem;    # BUKAN origin.pem app lama
+    ssl_certificate_key /etc/nginx/toko-certs/__DOMAIN__.key;
+
+    # IP klien asli: HANYA di server block toko, bukan di tingkat http
+    # __CF_REALIP__
+    real_ip_header CF-Connecting-IP;
+
+    # Allowlist asal koneksi: WAJIB aktif. allow/deny tidak dipakai karena
+    # setelah realip keduanya melihat IP klien, bukan IP Cloudflare.
+    if ($toko_src_ok = 0) { return 403; }
+
+    access_log /var/log/nginx/access.log toko_masked if=$toko_log_ok;
+    client_max_body_size 20m;
+    resolver 127.0.0.11 valid=30s;        # edge tetap start walau toko-proxy belum ada
+    set $toko_upstream toko-proxy;        # container_name unik, BUKAN nama service
+
+    location / {
+        proxy_pass http://$toko_upstream:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;   # IP klien asli (setelah realip)
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+        proxy_buffering off;                                # streaming Next.js
+        proxy_read_timeout 120s;
+    }
+}
+
+# (6) Staging: staging + staging-admin → toko-staging-proxy (basic auth ada di sana)
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name staging.__DOMAIN__ staging-admin.__DOMAIN__;
+    ssl_certificate     /etc/nginx/toko-certs/__DOMAIN__.pem;
+    ssl_certificate_key /etc/nginx/toko-certs/__DOMAIN__.key;
+
+    # __CF_REALIP__
+    real_ip_header CF-Connecting-IP;
+    if ($toko_src_ok = 0) { return 403; }
+
+    access_log /var/log/nginx/access.log toko_masked if=$toko_log_ok;
+    client_max_body_size 20m;
+    resolver 127.0.0.11 valid=30s;
+    set $toko_upstream toko-staging-proxy;
+
+    location / {
+        proxy_pass http://$toko_upstream:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        "upgrade";
+        proxy_buffering off;
+        proxy_read_timeout 120s;
+    }
+}
