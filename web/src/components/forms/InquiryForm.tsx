@@ -50,7 +50,7 @@ export function InquiryForm({ fixedType, defaultType = "kontak", defaultItems, b
             {TYPE_OPTIONS.map((opt) => (
               <label
                 key={opt.value}
-                className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-md border border-line bg-white px-3 py-2 text-sm has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50"
+                className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-md border border-line bg-surface px-3 py-2 text-sm has-[:checked]:border-primary-500 has-[:checked]:bg-primary-50"
               >
                 <input
                   type="radio"
@@ -64,7 +64,7 @@ export function InquiryForm({ fixedType, defaultType = "kontak", defaultItems, b
               </label>
             ))}
           </div>
-          {err.type ? <p className="mt-1.5 text-sm font-medium text-red-700">{err.type}</p> : null}
+          {err.type ? <p className="mt-1.5 text-sm font-medium text-danger">{err.type}</p> : null}
         </fieldset>
       )}
 

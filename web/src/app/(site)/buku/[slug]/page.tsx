@@ -159,7 +159,7 @@ export default async function BookPage({ params }: Props) {
       <div className="mt-6 grid gap-10 lg:grid-cols-12">
         {/* Sampul */}
         <div className="lg:col-span-4">
-          <div className="mx-auto max-w-[12rem] overflow-hidden rounded-md shadow-[0_1px_0_rgba(15,35,66,0.06),0_24px_48px_-24px_rgba(15,35,66,0.5)] sm:max-w-xs lg:sticky lg:top-24 lg:max-w-none">
+          <div className="mx-auto max-w-[12rem] overflow-hidden rounded-[2px] shadow-[0_1px_3px_rgba(15,35,66,0.22)] dark:ring-1 dark:ring-line sm:max-w-xs lg:sticky lg:top-24 lg:max-w-none">
             <CoverImage
               media={cover}
               sizes="(min-width: 1024px) 360px, 320px"
@@ -221,7 +221,7 @@ export default async function BookPage({ params }: Props) {
                 <h2 id="detail" className="text-xl font-semibold">
                   Detail buku
                 </h2>
-                <dl className="mt-3 divide-y divide-line rounded-lg border border-line bg-white">
+                <dl className="mt-3 divide-y divide-line rounded-lg border border-line bg-surface">
                   {details.map((d) => (
                     <div key={d.label} className="grid grid-cols-[9rem_1fr] gap-3 px-4 py-2.5 text-sm sm:grid-cols-[11rem_1fr]">
                       <dt className="text-muted">{d.label}</dt>
@@ -233,7 +233,7 @@ export default async function BookPage({ params }: Props) {
 
               {hasRichText(book.tableOfContents) ? (
                 <section aria-labelledby="daftar-isi">
-                  <details className="group rounded-lg border border-line bg-white">
+                  <details className="group rounded-lg border border-line bg-surface">
                     <summary className="flex min-h-12 cursor-pointer items-center justify-between px-4 font-semibold text-ink [&::-webkit-details-marker]:hidden">
                       <h2 id="daftar-isi" className="font-sans text-base">
                         Daftar isi

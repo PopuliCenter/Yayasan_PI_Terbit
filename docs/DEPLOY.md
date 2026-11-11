@@ -44,6 +44,7 @@ Perbarui panduan §1.1 dengan angka ini setelah §3.3 dijalankan ulang.
 
 1. **`.gitignore` panduan (§5.1 dan Lampiran B.7) berisi `staging/`.** Tanpa garis miring di depan, git mencocokkannya di tingkat mana pun, jadi `deploy/staging/staging-extra.conf` ikut diabaikan dan tidak pernah masuk repo. Akibatnya bind mount staging membuat direktori kosong, nginx gagal start, dan CI e2e merah. Repo ini memakai `/staging/` (hanya folder `htpasswd` di root).
 2. Komentar sebaris pada contoh `.env` (§6.6) membuat perintah `grep … | cut -d= -f2` di §8.4 dan §9.2 ikut membaca komentarnya. Repo ini menaruh setiap komentar `.env.example` di baris sendiri.
+3. **`render_vhost` di `/root/toko-ops.sh` (§3.2) memakai `#` sebagai pemisah `sed` sekaligus di dalam teks pengganti** (`s#.*#    &/32 1;   # gateway Docker…#`). Akibatnya sed gagal ("unknown option to `s'"), `host-gw.txt` kosong, tetapi fungsi tetap mencetak `OK … 0 gateway`. Vhost lalu tidak mengizinkan gateway Docker, dan semua uji dari host (`curl --resolve …127.0.0.1`) dibalas 403. Perbaikan: pemisah `|` (`s|.*|    &/32 1;   # gateway Docker: uji dari host|`), ditambah cek `[ -s /root/host-gw.txt ] || return 1`. Terjadi nyata di VPS 11 Nov 2026.
 
 ---
 

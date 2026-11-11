@@ -78,7 +78,7 @@ export default buildConfig({
   admin: {
     user: Users.slug,
     meta: {
-      titleSuffix: " — Admin Penerbit Populi",
+      titleSuffix: " — Admin Penerbit Yayasan Populi Indonesia",
     },
   },
   collections: [

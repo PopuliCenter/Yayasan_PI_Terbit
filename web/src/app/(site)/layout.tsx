@@ -3,9 +3,11 @@ import { Inter, Source_Serif_4 } from "next/font/google";
 import { JsonLd } from "@/components/JsonLd";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { ThemeSync } from "@/components/ThemeSync";
 import { issueFormToken } from "@/lib/antibot";
 import { getFooterPages, getSettings } from "@/lib/data";
 import { SITE_INDEXABLE, SITE_URL } from "@/lib/site";
+import { THEME_INIT_SCRIPT, THEME_PAPER } from "@/lib/theme";
 import "./globals.css";
 
 /**
@@ -39,7 +41,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const viewport: Viewport = {
-  themeColor: "#0f2342",
+  // Bawaan tanpa JavaScript (mengikuti mode perangkat); ThemeSync menyamakannya dengan pilihan pengunjung.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: THEME_PAPER.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_PAPER.dark },
+  ],
   width: "device-width",
   initialScale: 1,
 };
@@ -48,12 +54,24 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
   const [settings, footerPages] = await Promise.all([getSettings(), getFooterPages()]);
 
   return (
-    <html lang="id" className={`${inter.variable} ${serif.variable}`}>
+    // suppressHydrationWarning: skrip tema mengubah data-theme pada <html> sebelum React aktif.
+    <html lang="id" className={`${inter.variable} ${serif.variable}`} suppressHydrationWarning>
+      <head>
+        {/*
+          Skrip sinkron biasa, bukan next/script: beforeInteractive di App Router hanya
+          diantrekan (self.__next_s) dan baru jalan setelah halaman tergambar, sehingga
+          mode gelap sempat berkedip terang. Isinya konstanta dari lib/theme.ts, bukan
+          masukan pengguna. Di halaman yang layout-nya dirender ulang di browser (404),
+          React dev mencatat peringatan soal tag script; ThemeSync menjaga temanya.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="flex min-h-dvh flex-col">
+        <ThemeSync />
         <a href="#konten" className="skip-link">
           Langsung ke konten
         </a>
-        <SiteHeader siteName={settings.siteName} waNumber={settings.waNumber} />
+        <SiteHeader waNumber={settings.waNumber} />
         <main id="konten" className="flex-1">
           {children}
         </main>

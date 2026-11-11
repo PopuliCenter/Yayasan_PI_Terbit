@@ -51,10 +51,10 @@ export function NewsletterForm({ consentText, consentVersion, issuedAt }: Props)
           defaultValue={state.values?.email}
           aria-invalid={emailError ? true : undefined}
           aria-describedby={emailError ? "nl-email-error" : undefined}
-          className="field-input border-primary-700 bg-primary-900 text-white placeholder:text-primary-300"
+          className="field-input"
         />
         {emailError ? (
-          <p id="nl-email-error" className="mt-1.5 text-sm font-medium text-accent-200">
+          <p id="nl-email-error" className="mt-1.5 text-sm font-medium text-danger">
             {emailError}
           </p>
         ) : null}
@@ -70,23 +70,23 @@ export function NewsletterForm({ consentText, consentVersion, issuedAt }: Props)
           aria-describedby={consentError ? "nl-consent-error" : undefined}
           className="mt-1 size-5 shrink-0 accent-accent-500"
         />
-        <label htmlFor="nl-consent" className="text-xs leading-relaxed text-primary-200">
+        <label htmlFor="nl-consent" className="text-xs leading-relaxed text-muted">
           {consentText}
         </label>
       </div>
       {consentError ? (
-        <p id="nl-consent-error" className="text-sm font-medium text-accent-200">
+        <p id="nl-consent-error" className="text-sm font-medium text-danger">
           {consentError}
         </p>
       ) : null}
 
       {state.status === "error" && state.message ? (
-        <p role="alert" className="text-sm font-medium text-accent-200">
+        <p role="alert" className="text-sm font-medium text-danger">
           {state.message}
         </p>
       ) : null}
 
-      <button type="submit" className="btn w-full bg-accent-500 text-primary-950 hover:bg-accent-400" disabled={pending}>
+      <button type="submit" className="btn-primary w-full" disabled={pending}>
         {pending ? "Menyimpan…" : "Kabari saya"}
       </button>
     </form>

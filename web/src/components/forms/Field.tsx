@@ -30,7 +30,7 @@ const Wrapper = ({ id, label, error, hint, required, children }: Base & { childr
       </p>
     ) : null}
     {error ? (
-      <p id={`${id}-error`} className="mt-1.5 text-sm font-medium text-red-700">
+      <p id={`${id}-error`} className="mt-1.5 text-sm font-medium text-danger">
         {error}
       </p>
     ) : null}
@@ -58,7 +58,7 @@ export function TextField({ name, type = "text", defaultValue, autoComplete, inp
         inputMode={inputMode}
         aria-invalid={base.error ? true : undefined}
         aria-describedby={describedBy(base.id, base.error, base.hint)}
-        className={`field-input ${base.error ? "border-red-600" : ""}`}
+        className={`field-input ${base.error ? "border-danger-strong" : ""}`}
       />
     </Wrapper>
   );
@@ -78,7 +78,7 @@ export function TextArea({ name, rows = 5, defaultValue, autoComplete, ...base }
         autoComplete={autoComplete}
         aria-invalid={base.error ? true : undefined}
         aria-describedby={describedBy(base.id, base.error, base.hint)}
-        className={`field-input py-2.5 ${base.error ? "border-red-600" : ""}`}
+        className={`field-input py-2.5 ${base.error ? "border-danger-strong" : ""}`}
       />
     </Wrapper>
   );
@@ -92,7 +92,7 @@ export function FormStatus({ status, message }: { status: "idle" | "ok" | "error
     <div
       role={ok ? "status" : "alert"}
       className={`rounded-md border px-4 py-3 text-sm ${
-        ok ? "border-green-200 bg-green-50 text-green-900" : "border-red-200 bg-red-50 text-red-900"
+        ok ? "border-ok-line bg-ok-soft text-ok" : "border-danger-line bg-danger-soft text-danger"
       }`}
     >
       {message}

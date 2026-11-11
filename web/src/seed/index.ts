@@ -575,7 +575,7 @@ await payload.create({
     excerpt: "Buku terbaru tentang media sosial dan pemilih muda akan segera hadir. Tanyakan ketersediaannya lewat WhatsApp.",
     content: doc(
       p(
-        "Penerbit Populi akan segera menerbitkan Polarisasi di Linimasa, kajian tentang bagaimana media sosial membentuk sikap politik pemilih muda.",
+        "Penerbit Yayasan Populi Indonesia akan segera menerbitkan Polarisasi di Linimasa, kajian tentang bagaimana media sosial membentuk sikap politik pemilih muda.",
       ),
       p("Ini adalah kabar contoh untuk pengembangan situs."),
     ),

@@ -51,7 +51,7 @@ export function MobileOrderBar({
 }) {
   if (!waHref) return null;
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 px-4 py-3 shadow-[0_-8px_24px_-12px_rgba(15,35,66,0.25)] backdrop-blur lg:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 px-4 py-3 shadow-[0_-8px_24px_-12px_rgba(15,35,66,0.25)] backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-xl items-center gap-3">
         <p className="min-w-0 flex-1">
           <span className="sr-only">Harga: </span>
@@ -115,8 +115,8 @@ export function OrderPanel({
         {marketplaceLinks.length > 0 ? (
           <div>
             {waHref ? (
-              <p className="mb-2 mt-1 text-center text-xs font-medium uppercase tracking-wider text-muted">
-                atau beli di
+              <p className="mb-2 mt-1 text-center text-sm text-muted">
+                Atau beli di
               </p>
             ) : null}
             <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">

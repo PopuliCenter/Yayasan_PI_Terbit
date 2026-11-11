@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { waUrl } from "@/lib/wa";
+import { CloseMenuOnNavigate } from "./CloseMenuOnNavigate";
 import { MenuIcon, SearchIcon, WhatsAppIcon } from "./Icons";
+import { Logo } from "./Logo";
+import { ThemeToggle } from "./ThemeToggle";
 
 const NAV = [
   { href: "/buku", label: "Katalog" },
@@ -10,28 +13,30 @@ const NAV = [
   { href: "/institusi", label: "Untuk Institusi" },
 ];
 
-type Props = { siteName: string; waNumber: string | null };
+type Props = { waNumber: string | null };
 
 /**
- * Header tanpa JavaScript klien: menu HP memakai <details>, pencarian memakai form GET.
+ * Header nyaris tanpa JavaScript klien: menu HP memakai <details>, pencarian memakai form GET.
+ * Bagian klien hanya tombol mode gelap (ThemeToggle) dan penutup menu saat pindah halaman.
  */
-export function SiteHeader({ siteName, waNumber }: Props) {
+export function SiteHeader({ waNumber }: Props) {
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-paper/95 backdrop-blur supports-[backdrop-filter]:bg-paper/85">
+    <header className="sticky top-0 z-40 border-b border-line bg-paper">
       <div className="page-container flex h-16 items-center gap-4">
-        <Link href="/" className="mr-auto flex min-h-11 items-center gap-2.5" aria-label={`${siteName} — beranda`}>
-          <span
-            aria-hidden
-            className="flex size-9 items-center justify-center rounded bg-primary-900 font-serif text-lg font-bold text-accent-300"
-          >
-            P
-          </span>
-          <span className="leading-tight">
-            <span className="block font-serif text-[1.05rem] font-semibold text-ink">Penerbit Populi</span>
-            <span className="hidden text-[0.7rem] font-medium uppercase tracking-[0.12em] text-muted sm:block">
+        {/* Nama tautan = teks yang terlihat + "beranda" (WCAG 2.5.3 label in name). */}
+        <Link
+          href="/"
+          className="mr-auto flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap text-ink min-[360px]:gap-2.5"
+        >
+          {/* HP sangat sempit (< 360 px): logo dan nama sedikit diperkecil agar tetap satu baris. */}
+          <Logo className="h-5 w-auto shrink-0 min-[360px]:h-6 sm:h-7" />
+          <span className="flex flex-col leading-tight">
+            <span className="font-serif text-[0.9rem] font-semibold min-[360px]:text-[1.05rem] sm:text-[1.1rem]">
               Yayasan Populi Indonesia
             </span>
+            <span className="hidden font-serif text-sm italic text-muted sm:block">Penerbit</span>
           </span>
+          <span className="sr-only">, beranda</span>
         </Link>
 
         <nav aria-label="Utama" className="hidden lg:block">
@@ -46,37 +51,30 @@ export function SiteHeader({ siteName, waNumber }: Props) {
           </ul>
         </nav>
 
-        {/* Di antara lg dan xl ruang header sempit: kolom cari diganti ikon menuju katalog. */}
-        <Link href="/buku" className="btn-ghost hidden size-11 p-0 lg:inline-flex xl:hidden" aria-label="Cari buku">
+        {/*
+          Header tidak memuat kolom cari: logo + nama + menu sudah memenuhi lebar.
+          Layar lebar memakai ikon menuju katalog (yang punya kolom cari); layar kecil
+          mencari dari menu. Beranda juga punya kolom cari sendiri.
+        */}
+        <Link href="/buku" className="btn-ghost hidden size-11 p-0 lg:inline-flex" aria-label="Cari buku">
           <SearchIcon />
         </Link>
 
-        <form action="/buku" method="get" role="search" className="hidden md:block lg:hidden xl:block">
-          <label htmlFor="cari-header" className="sr-only">
-            Cari judul, penulis, atau ISBN
-          </label>
-          <div className="relative">
-            <input
-              id="cari-header"
-              name="q"
-              type="search"
-              placeholder="Cari judul, penulis, ISBN"
-              className="field-input w-56 pl-9 text-sm"
-              autoComplete="off"
-            />
-            <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
-          </div>
-        </form>
+        <div className="hidden lg:block">
+          <ThemeToggle />
+        </div>
 
         {waNumber ? (
           <a
-            href={waUrl(waNumber, "Halo, saya ingin bertanya tentang buku terbitan Penerbit Populi.")}
+            href={waUrl(waNumber, "Halo, saya ingin bertanya tentang buku terbitan Penerbit Yayasan Populi Indonesia.")}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-wa hidden whitespace-nowrap px-4 text-sm sm:inline-flex"
+            className="btn-outline hidden whitespace-nowrap px-4 text-sm sm:inline-flex lg:max-xl:size-11 lg:max-xl:px-0"
+            title="Tanya via WhatsApp"
           >
-            <WhatsAppIcon />
-            Tanya via WA
+            <WhatsAppIcon className="text-wa-ink" />
+            {/* Di antara lg dan xl header penuh menu: tombol menjadi ikon saja, labelnya tetap terbaca pembaca layar. */}
+            <span className="lg:max-xl:sr-only">Tanya via WA</span>
             <span className="sr-only"> (membuka WhatsApp di tab baru)</span>
           </a>
         ) : null}
@@ -88,8 +86,10 @@ export function SiteHeader({ siteName, waNumber }: Props) {
           >
             <MenuIcon />
           </summary>
-          <div className="absolute right-0 top-[calc(100%+0.5rem)] w-[min(20rem,calc(100vw-2rem))] rounded-lg border border-line bg-white p-3 shadow-xl">
-            <form action="/buku" method="get" role="search" className="mb-2 md:hidden">
+          {/* Tinggi dibatasi layar dan bisa digulir, agar baris terakhir (mode gelap) tetap terjangkau di HP pendek/landscape. */}
+          <div className="absolute right-0 top-[calc(100%+0.5rem)] max-h-[calc(100dvh-5rem)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-lg border border-line bg-surface p-3 shadow-xl">
+            <CloseMenuOnNavigate />
+            <form action="/buku" method="get" role="search" className="mb-2">
               <label htmlFor="cari-menu" className="sr-only">
                 Cari judul, penulis, atau ISBN
               </label>
@@ -117,6 +117,9 @@ export function SiteHeader({ siteName, waNumber }: Props) {
                 </li>
               </ul>
             </nav>
+            <div className="mt-2 border-t border-line pt-2">
+              <ThemeToggle variant="row" />
+            </div>
           </div>
         </details>
       </div>

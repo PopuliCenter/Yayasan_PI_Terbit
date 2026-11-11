@@ -3,10 +3,10 @@ import { AVAILABILITY, formatRupiah } from "@/lib/format";
 import { getDisplayPrice } from "@/lib/pricing";
 
 const TONE: Record<string, string> = {
-  ok: "bg-green-50 text-ok ring-green-200",
-  warn: "bg-amber-50 text-warn ring-amber-200",
-  off: "bg-stone-100 text-off ring-stone-200",
-  info: "bg-blue-50 text-info ring-blue-200",
+  ok: "bg-ok-soft text-ok ring-ok-line",
+  warn: "bg-warn-soft text-warn ring-warn-line",
+  off: "bg-off-soft text-off ring-off-line",
+  info: "bg-info-soft text-info ring-info-line",
 };
 
 export function AvailabilityBadge({ value }: { value: Book["availability"] }) {

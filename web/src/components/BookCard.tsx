@@ -16,7 +16,7 @@ export function BookCard({ book, priority, headingLevel = "h3" }: Props) {
   const authors = joinNames(authorNames(book));
   return (
     <article className="group relative flex flex-col">
-      <div className="overflow-hidden rounded-md bg-paper-2 shadow-[0_1px_0_rgba(15,35,66,0.06),0_8px_24px_-12px_rgba(15,35,66,0.35)] transition-transform duration-200 group-hover:-translate-y-0.5">
+      <div className="overflow-hidden rounded-[2px] bg-paper-2 shadow-[0_1px_2px_rgba(15,35,66,0.18)] dark:ring-1 dark:ring-line">
         <CoverImage
           media={book.cover}
           sizes="(min-width: 1024px) 220px, (min-width: 640px) 30vw, 45vw"
@@ -30,7 +30,7 @@ export function BookCard({ book, priority, headingLevel = "h3" }: Props) {
           {/* Seluruh kartu dapat diklik lewat ::after, tapi hanya satu tautan untuk pembaca layar. */}
           <Link
             href={`/buku/${book.slug}`}
-            className="after:absolute after:inset-0 after:content-[''] hover:text-primary-700 focus-visible:outline-none"
+            className="after:absolute after:inset-0 after:content-[''] group-hover:underline focus-visible:outline-none"
           >
             {book.title}
           </Link>
@@ -44,7 +44,7 @@ export function BookCard({ book, priority, headingLevel = "h3" }: Props) {
       {/* Fokus keyboard tetap terlihat pada kartu yang seluruhnya bisa diklik. */}
       <span
         aria-hidden
-        className="pointer-events-none absolute -inset-2 rounded-lg ring-accent-500 group-has-[a:focus-visible]:ring-3"
+        className="pointer-events-none absolute -inset-2 rounded-lg ring-focus group-has-[a:focus-visible]:ring-3"
       />
     </article>
   );

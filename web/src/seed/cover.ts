@@ -37,21 +37,12 @@ export const makeCover = async ({ title, author, bg, accent, seriesLabel }: Cove
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900" viewBox="0 0 600 900">
   <rect width="600" height="900" fill="${bg}"/>
-  <rect x="0" y="0" width="600" height="900" fill="url(#g)"/>
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#000" stop-opacity="0"/>
-      <stop offset="1" stop-color="#000" stop-opacity="0.28"/>
-    </linearGradient>
-  </defs>
   <rect x="56" y="150" width="96" height="10" fill="${accent}"/>
   ${seriesLabel ? `<text x="56" y="130" font-family="Arial, Helvetica, sans-serif" font-size="20" letter-spacing="3" fill="${accent}">${escapeXml(seriesLabel.toUpperCase())}</text>` : ""}
   ${titleSvg}
-  <circle cx="520" cy="760" r="160" fill="${accent}" fill-opacity="0.18"/>
-  <circle cx="560" cy="700" r="90" fill="${accent}" fill-opacity="0.22"/>
   <text x="56" y="${320 + lines.length * 62 + 30}" font-family="Arial, Helvetica, sans-serif" font-size="26" fill="#e5e7eb">${escapeXml(author)}</text>
   <rect x="56" y="812" width="488" height="1.5" fill="#ffffff" fill-opacity="0.35"/>
-  <text x="56" y="852" font-family="Arial, Helvetica, sans-serif" font-size="18" letter-spacing="4" fill="#ffffff" fill-opacity="0.85">PENERBIT POPULI</text>
+  <text x="56" y="852" font-family="Arial, Helvetica, sans-serif" font-size="18" letter-spacing="4" fill="#ffffff" fill-opacity="0.85">YAYASAN POPULI INDONESIA</text>
 </svg>`;
 
   return sharp(Buffer.from(svg)).png().toBuffer();

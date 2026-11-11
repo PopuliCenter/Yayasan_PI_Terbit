@@ -39,7 +39,7 @@ function IdentityBlock({ s }: { s: PublicSettings }) {
       <h2 id="identitas" className="text-2xl font-semibold">
         Identitas penyelenggara
       </h2>
-      <dl className="mt-4 divide-y divide-line rounded-lg border border-line bg-white">
+      <dl className="mt-4 divide-y divide-line rounded-lg border border-line bg-surface">
         {rows.map((r) => (
           <div key={r.label} className="grid grid-cols-[10rem_1fr] gap-3 px-4 py-2.5 text-sm sm:grid-cols-[12rem_1fr]">
             <dt className="text-muted">{r.label}</dt>
