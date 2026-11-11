@@ -26,10 +26,13 @@ export const Settings: GlobalConfig = {
             {
               name: "siteName",
               type: "text",
-              label: "Nama penerbit / merek di situs",
+              label: "Nama situs",
               required: true,
-              defaultValue: "Penerbit Yayasan Populi Indonesia",
-              admin: { description: "Keputusan no. 2." },
+              defaultValue: "Yayasan Populi Indonesia",
+              admin: {
+                description:
+                  "Tampil di judul tab, header, dan footer. Untuk verifikasi ISBN, samakan persis dengan nama badan hukum di SK (tanpa awalan \"Penerbit\").",
+              },
             },
             {
               name: "tagline",
@@ -39,8 +42,26 @@ export const Settings: GlobalConfig = {
             {
               name: "legalEntityName",
               type: "text",
-              label: "Nama badan penyelenggara situs",
-              admin: { description: "Nama badan yang mengoperasikan situs ini." },
+              label: "Nama badan hukum penerbit",
+              admin: {
+                description:
+                  "Persis seperti di SK pengesahan badan hukum dan akun ISBN Perpusnas. Tampil sebagai \"Penerbit\" di setiap halaman buku dan di halaman Tentang Kami.",
+              },
+            },
+            {
+              name: "legalBasis",
+              type: "text",
+              label: "Pengesahan badan hukum",
+              admin: {
+                description:
+                  "Mis. Keputusan Menteri Hukum dan HAM RI Nomor AHU-….AH.01.04.Tahun …. Tampil di halaman Tentang Kami dan footer.",
+              },
+            },
+            {
+              name: "publisherResponsible",
+              type: "text",
+              label: "Penanggung jawab penerbitan",
+              admin: { description: "Nama dan jabatan, sama dengan surat pernyataan ISBN. Tampil di halaman Tentang Kami." },
             },
             {
               name: "sellerEntityName",
@@ -248,7 +269,7 @@ export const Settings: GlobalConfig = {
               label: "Teks persetujuan kabar terbitan",
               required: true,
               defaultValue:
-                "Saya setuju menerima email kabar terbitan baru dari Penerbit Yayasan Populi Indonesia, dan saya boleh berhenti kapan saja lewat tautan di setiap email.",
+                "Saya setuju menerima email kabar terbitan baru dari Yayasan Populi Indonesia, dan saya boleh berhenti kapan saja lewat tautan di setiap email.",
               admin: {
                 description:
                   "Disimpan apa adanya bersama setiap pendaftaran sebagai bukti persetujuan. Ubah versinya bila teks ini diubah.",

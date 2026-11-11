@@ -90,9 +90,12 @@ await payload.updateGlobal({
   slug: "settings",
   overrideAccess: true,
   data: {
-    siteName: "Penerbit Yayasan Populi Indonesia",
-    tagline: "Menerbitkan hasil riset sosial, politik, dan kebijakan publik untuk pembaca luas.",
+    siteName: "Yayasan Populi Indonesia",
+    tagline: "Menerbitkan buku kajian sosial, politik, dan kebijakan publik untuk pembaca umum.",
     legalEntityName: "Yayasan Populi Indonesia",
+    legalBasis:
+      "Keputusan Menteri Hukum dan Hak Asasi Manusia Republik Indonesia Nomor AHU-5475.AH.01.04.Tahun 2012",
+    publisherResponsible: "[Nama, jabatan — isi dari Pengaturan Situs]",
     address: "[Alamat kantor — isi dari Pengaturan Situs]",
     // Placeholder yang sengaja tidak valid sebagai nomor HP, agar uji klik tidak mengirim pesan ke siapa pun.
     waNumber: "620000000000",
@@ -108,7 +111,7 @@ await payload.updateGlobal({
       { platform: "shopee", url: "https://shopee.co.id/" },
     ],
     defaultMetaDescription:
-      "Katalog resmi buku terbitan Yayasan Populi Indonesia: politik, demokrasi, kebijakan publik, dan metodologi survei. Pesan lewat WhatsApp atau marketplace.",
+      "Katalog resmi buku terbitan Yayasan Populi Indonesia: kajian politik, demokrasi, dan kebijakan publik. Pesan lewat WhatsApp atau marketplace.",
   },
 });
 log("pengaturan situs diisi");
@@ -446,22 +449,47 @@ const DRAFT_LEGAL =
   "Catatan: teks ini adalah draf kerja dan wajib ditinjau konsultan hukum sebelum situs dibuka untuk publik.";
 
 const pages = [
+  // Profil penerbit untuk verifikasi ISBN Perpusnas: Yayasan Populi Indonesia satu-satunya subjek
+  // penerbitan. Blok "Identitas penerbit" (alamat, kontak, legalitas) ditambahkan otomatis dari Pengaturan.
   {
-    title: "Tentang Penerbit",
+    title: "Tentang Kami",
     slug: "tentang",
     footerOrder: 10,
-    summary: "Penerbit Yayasan Populi Indonesia menerbitkan hasil riset sosial dan politik untuk pembaca luas.",
+    summary:
+      "Yayasan Populi Indonesia adalah yayasan berbadan hukum di Jakarta yang menerbitkan buku kajian sosial, politik, dan kebijakan publik.",
     content: doc(
       p(
-        "Penerbit Yayasan Populi Indonesia menerbitkan buku hasil riset di bidang politik, demokrasi, kebijakan publik, dan metodologi survei. Kami percaya hasil penelitian perlu sampai ke pembaca di luar ruang akademik, dengan bahasa yang jernih dan data yang dapat dipertanggungjawabkan.",
+        "Yayasan Populi Indonesia adalah badan hukum nirlaba berbentuk yayasan yang berkedudukan di Jakarta, disahkan dengan Keputusan Menteri Hukum dan Hak Asasi Manusia Republik Indonesia Nomor AHU-5475.AH.01.04.Tahun 2012. Yayasan Populi Indonesia menerbitkan buku di bidang sosial, politik, dan kebijakan publik. Situs ini adalah situs resmi Yayasan Populi Indonesia sekaligus katalog buku terbitannya.",
       ),
-      h2("Yang kami terbitkan"),
+      h2("Kegiatan penerbitan"),
+      p(
+        "Yayasan Populi Indonesia menyelenggarakan kegiatan penelitian, pendidikan, pengembangan pengetahuan, dan penerbitan. Penerbitan buku dijalankan langsung oleh Yayasan Populi Indonesia sebagai penerbit. Buku yang kami terbitkan ditujukan untuk pembaca umum, yaitu:",
+      ),
       ul([
-        "Monografi hasil penelitian",
-        "Buku panduan metodologi untuk mahasiswa dan peneliti",
-        "Kumpulan tulisan dan bunga rampai kebijakan",
+        "buku yang dikembangkan dari hasil penelitian dan disajikan dalam bentuk buku;",
+        "buku kajian sosial dan politik, antara lain tentang kepemimpinan, perilaku pemilih, pemilihan umum, dan demokrasi;",
+        "buku analisis kebijakan publik;",
+        "karya ilmiah lain yang sesuai dengan bidang kajian yayasan.",
       ]),
-      p("Ingin menerbitkan naskah bersama kami? Baca halaman Kirim Naskah."),
+      h2("Tanggung jawab penerbit"),
+      p(
+        "Yayasan Populi Indonesia bertanggung jawab atas penyuntingan, produksi, dan distribusi setiap buku terbitannya, termasuk pengajuan International Standard Book Number (ISBN). Pada sampul, halaman judul, dan halaman hak cipta setiap buku, penerbit tercantum sebagai Yayasan Populi Indonesia.",
+      ),
+      h2("Naskah"),
+      p("Kami menerima naskah yang sesuai dengan bidang terbitan di atas. Ketentuan dan cara pengirimannya ada di halaman Kirim Naskah."),
+      h2("Susunan organ yayasan dan redaksi"),
+      ul([
+        "Pembina: [nama]",
+        "Pengurus: Ketua [nama]; Sekretaris [nama]; Bendahara [nama]",
+        "Pengawas: [nama]",
+        "Penanggung jawab penerbitan: [nama, jabatan]",
+        "Penyunting: [nama]",
+      ]),
+      h2("Katalog dan cara memperoleh buku"),
+      p(
+        "Semua buku terbitan Yayasan Populi Indonesia tercantum di halaman Katalog. Setiap judul memiliki halaman sendiri yang memuat sampul, judul, penulis, penerbit, ISBN, dan sinopsis. Buku dapat dipesan lewat WhatsApp resmi atau toko resmi kami di marketplace; tata caranya ada di halaman Cara Pesan.",
+      ),
+      p("Identitas lengkap penerbit, termasuk alamat, kontak, dan legalitas, tercantum di bawah ini."),
     ),
   },
   {
@@ -520,7 +548,7 @@ const pages = [
     title: "Ketentuan Penggunaan",
     slug: "ketentuan-penggunaan",
     footerOrder: 40,
-    summary: "Ketentuan penggunaan situs katalog Penerbit Yayasan Populi Indonesia.",
+    summary: "Ketentuan penggunaan situs katalog Yayasan Populi Indonesia.",
     policyVersion: "0.1",
     content: doc(
       p(DRAFT_LEGAL),
@@ -533,9 +561,9 @@ const pages = [
     title: "Kirim Naskah",
     slug: "kirim-naskah",
     footerOrder: 50,
-    summary: "Syarat dan cara mengirim naskah ke Penerbit Yayasan Populi Indonesia.",
+    summary: "Syarat dan cara mengirim naskah ke Yayasan Populi Indonesia.",
     content: doc(
-      p("Kami menerima naskah hasil penelitian atau kajian di bidang sosial, politik, dan kebijakan publik."),
+      p("Yayasan Populi Indonesia menerima naskah buku di bidang sosial, politik, dan kebijakan publik untuk pembaca umum. Laporan penelitian perlu lebih dulu disusun ulang menjadi buku."),
       h2("Yang perlu disiapkan"),
       ul([
         "Ringkasan naskah 1–2 halaman",
@@ -575,7 +603,7 @@ await payload.create({
     excerpt: "Buku terbaru tentang media sosial dan pemilih muda akan segera hadir. Tanyakan ketersediaannya lewat WhatsApp.",
     content: doc(
       p(
-        "Penerbit Yayasan Populi Indonesia akan segera menerbitkan Polarisasi di Linimasa, kajian tentang bagaimana media sosial membentuk sikap politik pemilih muda.",
+        "Yayasan Populi Indonesia akan segera menerbitkan Polarisasi di Linimasa, kajian tentang bagaimana media sosial membentuk sikap politik pemilih muda.",
       ),
       p("Ini adalah kabar contoh untuk pengembangan situs."),
     ),

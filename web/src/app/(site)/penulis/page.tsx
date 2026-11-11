@@ -7,7 +7,7 @@ import { getAuthors } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Penulis",
-  description: "Para penulis yang karyanya diterbitkan Penerbit Yayasan Populi Indonesia.",
+  description: "Para penulis yang karyanya diterbitkan Yayasan Populi Indonesia.",
   alternates: { canonical: "/penulis" },
 };
 

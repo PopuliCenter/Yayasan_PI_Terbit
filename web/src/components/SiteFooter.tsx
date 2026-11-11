@@ -12,7 +12,7 @@ type Props = {
 };
 
 export function SiteFooter({ settings, footerPages, formIssuedAt }: Props) {
-  const seller = settings.sellerEntityName || settings.legalEntityName;
+  const seller = settings.sellerEntityName || settings.publisherName;
   const year = new Date().getFullYear();
 
   return (
@@ -26,10 +26,14 @@ export function SiteFooter({ settings, footerPages, formIssuedAt }: Props) {
           {settings.tagline ? <p className="mt-2 text-sm text-muted">{settings.tagline}</p> : null}
           {/* Identitas penjual wajib jelas (F-KON-01). */}
           <dl className="mt-5 space-y-2 text-sm">
-            {seller ? (
+            <div>
+              <dt className="sr-only">Penerbit</dt>
+              <dd className="text-ink">Penerbit: {settings.publisherName}</dd>
+            </div>
+            {settings.legalBasis ? (
               <div>
-                <dt className="sr-only">Penyelenggara</dt>
-                <dd className="text-ink">{seller}</dd>
+                <dt className="sr-only">Pengesahan badan hukum</dt>
+                <dd>{settings.legalBasis}</dd>
               </div>
             ) : null}
             {settings.address ? (

@@ -1207,14 +1207,22 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
 export interface Setting {
   id: number;
   /**
-   * Keputusan no. 2.
+   * Tampil di judul tab, header, dan footer. Untuk verifikasi ISBN, samakan persis dengan nama badan hukum di SK (tanpa awalan "Penerbit").
    */
   siteName: string;
   tagline?: string | null;
   /**
-   * Nama badan yang mengoperasikan situs ini.
+   * Persis seperti di SK pengesahan badan hukum dan akun ISBN Perpusnas. Tampil sebagai "Penerbit" di setiap halaman buku dan di halaman Tentang Kami.
    */
   legalEntityName?: string | null;
+  /**
+   * Mis. Keputusan Menteri Hukum dan HAM RI Nomor AHU-….AH.01.04.Tahun …. Tampil di halaman Tentang Kami dan footer.
+   */
+  legalBasis?: string | null;
+  /**
+   * Nama dan jabatan, sama dengan surat pernyataan ISBN. Tampil di halaman Tentang Kami.
+   */
+  publisherResponsible?: string | null;
   /**
    * Isi bila penjual berbeda dari penyelenggara situs. Tampil di halaman Tentang dan footer (keputusan no. 13).
    */
@@ -1289,6 +1297,8 @@ export interface SettingsSelect<T extends boolean = true> {
   siteName?: T;
   tagline?: T;
   legalEntityName?: T;
+  legalBasis?: T;
+  publisherResponsible?: T;
   sellerEntityName?: T;
   address?: T;
   nib?: T;

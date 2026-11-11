@@ -9,7 +9,7 @@ import { waUrl } from "@/lib/wa";
 
 export const metadata: Metadata = {
   title: "Kontak & pengaduan",
-  description: "Hubungi Penerbit Yayasan Populi Indonesia untuk pertanyaan, pengaduan, atau pengiriman naskah.",
+  description: "Hubungi Yayasan Populi Indonesia untuk pertanyaan, pengaduan, atau pengiriman naskah.",
   alternates: { canonical: "/kontak" },
 };
 

@@ -23,6 +23,10 @@ export type PublicSettings = {
   tagline: string | null;
   legalEntityName: string | null;
   sellerEntityName: string | null;
+  /** Nama penerbit resmi (badan hukum), dipakai di halaman buku dan identitas penerbit. */
+  publisherName: string;
+  legalBasis: string | null;
+  publisherResponsible: string | null;
   address: string | null;
   nib: string | null;
   registeredInfo: string | null;
@@ -52,10 +56,13 @@ export const getSettings = cache(async (): Promise<PublicSettings> => {
   })) as Partial<Setting>;
 
   return {
-    siteName: s.siteName || "Penerbit Yayasan Populi Indonesia",
+    siteName: s.siteName || "Yayasan Populi Indonesia",
     tagline: s.tagline ?? null,
     legalEntityName: s.legalEntityName ?? null,
     sellerEntityName: s.sellerEntityName ?? null,
+    publisherName: s.legalEntityName || s.siteName || "Yayasan Populi Indonesia",
+    legalBasis: s.legalBasis ?? null,
+    publisherResponsible: s.publisherResponsible ?? null,
     address: s.address ?? null,
     nib: s.nib ?? null,
     registeredInfo: s.registeredInfo ?? null,

@@ -10,7 +10,9 @@ const NAV = [
   { href: "/penulis", label: "Penulis" },
   { href: "/kabar", label: "Kabar" },
   { href: "/cara-pesan", label: "Cara Pesan" },
-  { href: "/institusi", label: "Untuk Institusi" },
+  // Halaman CMS slug "tentang": profil penerbit + blok identitas badan hukum (dicek verifikator ISBN).
+  // "Untuk Institusi" sengaja dikeluarkan dari header; halamannya tetap ada lewat footer dan beranda.
+  { href: "/tentang", label: "Tentang Kami" },
 ];
 
 type Props = { waNumber: string | null };
@@ -66,7 +68,7 @@ export function SiteHeader({ waNumber }: Props) {
 
         {waNumber ? (
           <a
-            href={waUrl(waNumber, "Halo, saya ingin bertanya tentang buku terbitan Penerbit Yayasan Populi Indonesia.")}
+            href={waUrl(waNumber, "Halo, saya ingin bertanya tentang buku terbitan Yayasan Populi Indonesia.")}
             target="_blank"
             rel="noopener noreferrer"
             className="btn-outline hidden whitespace-nowrap px-4 text-sm sm:inline-flex lg:max-xl:size-11 lg:max-xl:px-0"

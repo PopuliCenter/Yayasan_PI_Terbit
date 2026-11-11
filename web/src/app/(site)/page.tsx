@@ -4,7 +4,7 @@ import { PriceTag } from "@/components/BookMeta";
 import { CoverImage } from "@/components/CoverImage";
 import { SearchIcon } from "@/components/Icons";
 import { authorNames, formatDate, joinNames } from "@/lib/format";
-import { getCategories, getHomeBooks, getPosts } from "@/lib/data";
+import { getCategories, getHomeBooks, getPosts, getSettings } from "@/lib/data";
 import { lexicalToPlainText } from "@/lib/richtext";
 
 const ORDER_STEPS = [
@@ -23,7 +23,8 @@ const ORDER_STEPS = [
 ];
 
 export default async function HomePage() {
-  const [{ latest, featured }, categories, posts] = await Promise.all([
+  const [settings, { latest, featured }, categories, posts] = await Promise.all([
+    getSettings(),
     getHomeBooks(),
     getCategories(),
     getPosts(1, 3),
@@ -40,15 +41,15 @@ export default async function HomePage() {
         <div className="grid gap-10 border-b border-line pb-12 sm:pb-14 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-7">
             <h1 className="max-w-[20ch] text-[2rem] font-semibold leading-[1.15] sm:text-[2.6rem]">
-              Buku hasil penelitian tentang politik, demokrasi, dan kebijakan publik.
+              Buku kajian politik, demokrasi, dan kebijakan publik.
             </h1>
+            {/* Identitas penerbit tertulis di layar pertama: verifikator ISBN membuka beranda lebih dulu. */}
             <p className="mt-5 max-w-xl text-lg leading-relaxed">
-              Pilih judul di katalog, lalu pesan lewat WhatsApp atau toko resmi kami di marketplace. Perpustakaan dan
-              kampus bisa{" "}
-              <Link href="/institusi" className="link">
-                meminta penawaran harga
+              {settings.publisherName} menerbitkan buku untuk pembaca umum. Situs ini adalah katalog resmi
+              terbitan kami: pilih judul, lalu pesan lewat WhatsApp atau toko resmi kami di marketplace.{" "}
+              <Link href="/tentang" className="link">
+                Tentang kami
               </Link>
-              .
             </p>
             <form action="/buku" method="get" role="search" className="mt-8 max-w-lg">
               <label htmlFor="cari-beranda" className="field-label">

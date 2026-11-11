@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!category) return { title: "Kategori tidak ditemukan" };
   return {
     title: `Buku ${category.title}`,
-    description: category.description || `Buku bertopik ${category.title} terbitan Penerbit Yayasan Populi Indonesia.`,
+    description: category.description || `Buku bertopik ${category.title} terbitan Yayasan Populi Indonesia.`,
     alternates: { canonical: `/kategori/${category.slug}` },
   };
 }

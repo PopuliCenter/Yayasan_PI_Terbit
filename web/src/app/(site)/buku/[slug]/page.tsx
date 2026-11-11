@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const description =
     book.metaDescription ||
     lexicalToPlainText(book.synopsis, 158) ||
-    `${book.title}${authors ? ` karya ${authors}` : ""}. Terbitan Penerbit Yayasan Populi Indonesia.`;
+    `${book.title}${authors ? ` karya ${authors}` : ""}. Terbitan Yayasan Populi Indonesia.`;
   const cover = asObj<Media>(book.cover);
   const og = cover?.sizes?.og;
   const ogImage = og?.url
@@ -108,7 +108,10 @@ export default async function BookPage({ params }: Props) {
 
   const details: { label: string; value: React.ReactNode }[] = [
     { label: "Penulis", value: joinNames(authors.map((a) => a.name)) },
-    { label: "ISBN", value: book.isbn13 },
+    // Penerbit dan ISBN selalu tampil: verifikator ISBN Perpusnas memeriksa halaman buku ini
+    // (FAQ ISBN: katalog memuat sampul, judul, penulis, ISBN — boleh "dalam proses" — dan sinopsis).
+    { label: "Penerbit", value: settings.publisherName },
+    { label: "ISBN", value: book.isbn13 || "Dalam proses" },
     { label: "Tahun terbit", value: book.publishedYear },
     { label: "Cetakan", value: book.edition },
     { label: "Jumlah halaman", value: book.pageCount ? `${book.pageCount} halaman` : null },
@@ -358,7 +361,7 @@ export default async function BookPage({ params }: Props) {
           bookEdition: book.edition || undefined,
           author: authors.map((a) => ({ "@type": "Person", name: a.name, url: absoluteUrl(`/penulis/${a.slug}`) })),
           brand: { "@type": "Brand", name: settings.siteName },
-          publisher: { "@type": "Organization", name: settings.siteName },
+          publisher: { "@type": "Organization", name: settings.publisherName, url: absoluteUrl("/tentang") },
           weight: book.weightGram ? { "@type": "QuantitativeValue", value: book.weightGram, unitCode: "GRM" } : undefined,
           isPartOf: series ? { "@type": "BookSeries", name: series.title, url: absoluteUrl(`/seri/${series.slug}`) } : undefined,
           offers: {

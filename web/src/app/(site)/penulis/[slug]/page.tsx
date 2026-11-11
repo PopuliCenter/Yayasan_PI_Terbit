@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: author.name,
     description:
-      author.shortBio || lexicalToPlainText(author.bio, 158) || `Buku karya ${author.name} di Penerbit Yayasan Populi Indonesia.`,
+      author.shortBio || lexicalToPlainText(author.bio, 158) || `Buku karya ${author.name} terbitan Yayasan Populi Indonesia.`,
     alternates: { canonical: `/penulis/${author.slug}` },
     openGraph: { type: "profile", title: author.name },
   };

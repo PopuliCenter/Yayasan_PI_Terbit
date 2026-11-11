@@ -4,6 +4,7 @@ import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { WhatsAppIcon } from "@/components/Icons";
 import { RichTextContent } from "@/components/RichTextContent";
 import { getPageBySlug, getSettings, type PublicSettings } from "@/lib/data";
+import { SITE_URL } from "@/lib/site";
 import { formatDate, MARKETPLACE_LABEL } from "@/lib/format";
 import { lexicalToPlainText } from "@/lib/richtext";
 import { waUrl } from "@/lib/wa";
@@ -21,23 +22,31 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** Identitas penyelenggara dari Pengaturan, selalu tampil di halaman Tentang (F-KON-01). */
+/**
+ * Identitas penerbit dari Pengaturan, selalu tampil di halaman Tentang Kami (F-KON-01).
+ * Isinya mengikuti yang diperiksa verifikator ISBN Perpusnas (Perpusnas No. 11/2025 Pasal 5
+ * ayat 2 huruf c: situs menjelaskan identitas pemohon) dan isian surat pernyataan ISBN.
+ */
 function IdentityBlock({ s }: { s: PublicSettings }) {
   const rows = [
-    { label: "Nama penerbit", value: s.siteName },
-    { label: "Penyelenggara situs", value: s.legalEntityName },
-    { label: "Penjual", value: s.sellerEntityName },
-    { label: "Alamat", value: s.address },
+    { label: "Nama penerbit", value: s.publisherName },
+    { label: "Pengesahan badan hukum", value: s.legalBasis },
     { label: "NIB", value: s.nib },
+    { label: "Penanggung jawab", value: s.publisherResponsible },
+    { label: "Alamat", value: s.address },
+    { label: "Telepon", value: s.phone },
     { label: "Email", value: s.email },
+    { label: "Situs web", value: SITE_URL.replace(/^https?:\/\//, "") },
     { label: "WhatsApp", value: s.waNumber ? `+${s.waNumber}` : null },
     { label: "Jam layanan", value: s.serviceHours },
+    // Penjual hanya tampil bila berbeda dari penerbit.
+    { label: "Penjual", value: s.sellerEntityName && s.sellerEntityName !== s.publisherName ? s.sellerEntityName : null },
   ].filter((r) => r.value);
 
   return (
     <section aria-labelledby="identitas" className="mt-12">
       <h2 id="identitas" className="text-2xl font-semibold">
-        Identitas penyelenggara
+        Identitas penerbit
       </h2>
       <dl className="mt-4 divide-y divide-line rounded-lg border border-line bg-surface">
         {rows.map((r) => (

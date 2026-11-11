@@ -29,7 +29,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   const filtered = Boolean(params.q || params.kategori || params.penulis || params.ketersediaan || params.urut);
   return {
     title: params.q ? `Hasil pencarian “${params.q}”` : "Katalog buku",
-    description: "Semua buku terbitan Penerbit Yayasan Populi Indonesia. Cari menurut judul, penulis, ISBN, atau topik.",
+    description: "Semua buku terbitan Yayasan Populi Indonesia. Cari menurut judul, penulis, ISBN, atau topik.",
     alternates: { canonical: "/buku" },
     // Halaman hasil filter tidak diindeks agar tidak menjadi duplikat halaman katalog.
     robots: filtered ? { index: false, follow: true } : undefined,

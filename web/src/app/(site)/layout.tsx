@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
     "Katalog resmi buku terbitan Yayasan Populi Indonesia. Pesan langsung lewat WhatsApp atau marketplace.";
   return {
     metadataBase: new URL(SITE_URL),
-    title: { default: s.siteName, template: `%s — ${s.siteName}` },
+    title: { default: `${s.siteName} — Penerbit buku`, template: `%s — ${s.siteName}` },
     description,
     applicationName: s.siteName,
     openGraph: { siteName: s.siteName, locale: "id_ID", type: "website", description },
@@ -80,7 +80,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
           data={{
             "@context": "https://schema.org",
             "@type": "Organization",
-            name: settings.siteName,
+            name: settings.publisherName,
             legalName: settings.sellerEntityName || settings.legalEntityName || undefined,
             url: SITE_URL,
             email: settings.email || undefined,

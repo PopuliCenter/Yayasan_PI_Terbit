@@ -9,7 +9,7 @@ import { formatDate } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Kabar penerbit",
-  description: "Rilis buku baru, peluncuran, liputan, dan pengumuman dari Penerbit Yayasan Populi Indonesia.",
+  description: "Rilis buku baru, peluncuran, liputan, dan pengumuman dari Yayasan Populi Indonesia.",
   alternates: { canonical: "/kabar" },
 };
 
