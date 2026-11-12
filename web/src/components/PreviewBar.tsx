@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshRouteOnSave } from "@payloadcms/live-preview-react";
+import { isDocumentEvent, ready } from "@payloadcms/live-preview";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useSyncExternalStore, useTransition } from "react";
 import { resolveTheme, THEME_STYLE_ID, type ThemeInput } from "@/lib/appearance/theme";
@@ -31,7 +31,13 @@ const appearanceThemeFrom = (event: MessageEvent): { theme: ThemeInput } | null 
  * (layout merendernya bila getAppearance().preview). Kontras AA: teks ink 13,5:1 / 13,9:1
  * dan muted 5,16:1 / 7,13:1 di atas paper-2 (terang / gelap).
  *
- * - Simpan di panel admin -> RefreshRouteOnSave memuat ulang data server (router.refresh).
+ * - Simpan di panel admin -> pesan `payload-document-event` -> data server dimuat ulang
+ *   (router.refresh). Sengaja TIDAK memakai RefreshRouteOnSave: komponen itu juga
+ *   me-refresh setiap kali terpasang. Bila refresh gagal dan Next jatuh ke muat ulang
+ *   halaman penuh (mis. respons ?_rsc= bukan 200), muat ulang -> pasang -> refresh ->
+ *   muat ulang berputar tanpa henti. Refresh saat terpasang juga tidak perlu: halaman baru
+ *   dirender server dengan draf terbaru, dan panel admin sendiri mengirim satu
+ *   document-event saat menerima `ready` pertama.
  * - Mengubah warna di global Tampilan -> CSS tema ditukar seketika tanpa menyimpan. Hanya
  *   `theme` dari pesan origin yang sama yang dipakai, dan CSS-nya dibuat ulang oleh
  *   resolveTheme (kunci tetap + hex tervalidasi), jadi data pesan tidak pernah masuk mentah.
@@ -43,6 +49,18 @@ export function PreviewBar() {
   const origin = useSyncExternalStore(subscribeNever, readOrigin, serverSnapshot);
   const inFrame = useSyncExternalStore(subscribeNever, readInFrame, serverSnapshot);
   const refresh = useCallback(() => startTransition(() => router.refresh()), [router]);
+
+  // Jabat tangan Live Preview: `ready` ke panel admin (iframe -> parent, popup -> opener),
+  // lalu refresh hanya pada document-event dari origin yang sama.
+  useEffect(() => {
+    if (!origin) return;
+    const onMessage = (event: MessageEvent) => {
+      if (isDocumentEvent(event, origin)) refresh();
+    };
+    window.addEventListener("message", onMessage);
+    ready({ serverURL: origin });
+    return () => window.removeEventListener("message", onMessage);
+  }, [origin, refresh]);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -79,7 +97,6 @@ export function PreviewBar() {
           </div>
         ) : null}
       </div>
-      {origin ? <RefreshRouteOnSave serverURL={origin} refresh={refresh} /> : null}
     </aside>
   );
 }

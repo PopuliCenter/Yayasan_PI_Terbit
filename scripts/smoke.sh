@@ -166,6 +166,12 @@ cek "/api/users tanpa JWT"                             401 GET "$ADM" /api/users
 cek "/api/laporan tanpa JWT"                           401 GET "$ADM" /api/laporan/pesanan-per-judul
 cek "/admin dengan JWT palsu"                          401 GET "$ADM" /admin -H 'Cf-Access-Jwt-Assertion: eyJhbGciOiJub25lIn0.e30.'
 cek "/internal/ tetap 404 di host admin"               404 GET "$ADM" /internal/access-check
+# Permintaan data Next.js (router.refresh di pratinjau, navigasi admin) membawa header RSC.
+# Header itu tidak boleh ikut ke subrequest auth: Next membalas 307 di sana, auth_request
+# menjadikannya 500, dan iframe pratinjau dimuat ulang tanpa henti.
+RSC_HDR=(-H 'RSC: 1' -H 'Next-Router-State-Tree: %5B%22%22%2C%7B%7D%5D')
+cek "/admin data RSC: tetap 401, bukan 500"            401 GET "$ADM" "/admin?_rsc=uji" "${RSC_HDR[@]}"
+cek "/pratinjau data RSC: tetap 401, bukan 500"        401 GET "$ADM" "/pratinjau/beranda?_rsc=uji" "${RSC_HDR[@]}"
 cek "/nginx-health host admin"                         200 GET "$ADM" /nginx-health
 header "redirect admin relatif (bukan http://)"        '^location: /admin' "$ADM" /
 header "host admin: CDN-Cache-Control no-store"        '^cdn-cache-control: no-store' "$ADM" /admin

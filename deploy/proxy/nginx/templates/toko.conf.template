@@ -121,6 +121,12 @@ server {
         set $toko_app toko-app;
         proxy_pass http://$toko_app:3000/internal/access-check;
         proxy_pass_request_body off;
+        # Header klien TIDAK ikut ke subrequest; hanya yang di-set di bawah. Tanpa ini,
+        # permintaan data Next.js (router.refresh, navigasi admin) membawa `RSC: 1` dan
+        # Next-Router-State-Tree ke /internal/access-check; Next membalas 307 (menambah
+        # ?_rsc=) sebelum handler jalan, auth_request mengubahnya jadi 500, dan peramban
+        # memuat ulang halaman penuh. Di iframe pratinjau itu menjadi putaran muat ulang.
+        proxy_pass_request_headers off;
         proxy_set_header Content-Length "";
         proxy_set_header Host $host;
         proxy_set_header Cf-Access-Jwt-Assertion $http_cf_access_jwt_assertion;
