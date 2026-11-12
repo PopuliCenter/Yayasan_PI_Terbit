@@ -11,6 +11,7 @@ export const Authors: CollectionConfig = {
     useAsTitle: "name",
     defaultColumns: ["photo", "name", "_status", "updatedAt"],
     group: "Katalog",
+    description: "Satu entri per orang: penulis, penyunting, atau penerjemah. Perannya ditentukan di setiap buku.",
     components: {
       edit: {
         beforeDocumentControls: [

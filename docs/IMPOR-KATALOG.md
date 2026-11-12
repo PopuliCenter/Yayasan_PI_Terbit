@@ -15,14 +15,14 @@ Panduan untuk admin katalog Yayasan Populi Indonesia. Fitur ini memasukkan banya
 
 ## 1. Urutan kerja
 
-Urutan ini penting: buku merujuk penulis, kategori, seri, dan sampul. Rujukan yang belum ada membuat barisnya ditolak.
+Urutan ini penting: buku merujuk penulis (juga penyunting dan penerjemah), kategori, seri, dan sampul. Rujukan yang belum ada membuat barisnya ditolak.
 
 1. **Unggah sampul lebih dulu.** Buka **Media → Unggah banyak** dan pilih semua berkas sampul sekaligus. Beri nama berkas yang jelas sebelum diunggah, mis. `sampul-membaca-suara-pemilih.jpg`. Nama inilah yang nanti ditulis di kolom `cover`.
    - Media menyimpan gambar sebagai WebP. Nama `.jpg` atau `.png` di CSV tetap cocok dengan berkas `.webp` yang tersimpan.
    - Bila nama berkas sudah dipakai, Media menambahkan akhiran (mis. `sampul-x-1.webp`). Salin nama yang tertera di Media.
-2. **Impor kategori, seri, lalu penulis.** Gunakan templat masing-masing dengan mode **Buat dokumen baru**. Data ini langsung tayang.
+2. **Impor kategori, seri, lalu penulis.** Gunakan templat masing-masing dengan mode **Buat dokumen baru**. Data ini langsung tayang. Penyunting dan penerjemah juga diimpor lewat templat penulis: satu entri per orang, perannya ditentukan di setiap buku.
 3. **Impor buku.** Gunakan mode **Buat dokumen baru**. Buku masuk sebagai **draf** (kecuali kolom `_status` diisi `published`), jadi belum tampil di situs.
-4. **Tinjau lalu tayangkan.** Di **Katalog → Buku**, saring status Draf, periksa setiap judul (sampul, sinopsis, harga), lalu centang beberapa judul sekaligus dan pilih **Terbitkan**. Buku yang ditayangkan wajib punya sampul, penulis, dan harga.
+4. **Tinjau lalu tayangkan.** Di **Katalog → Buku**, saring status Draf, periksa setiap judul (sampul, sinopsis, harga), lalu centang beberapa judul sekaligus dan pilih **Terbitkan**. Buku yang ditayangkan wajib punya sampul, penulis atau penyunting, dan harga.
 5. **Perbarui harga atau ketersediaan.** Buat CSV yang hanya berisi kolom `slug` dan kolom yang berubah, mis. `slug,price,availability`. Impor dengan mode **Perbarui dokumen yang ada** dan **Cocokkan berdasarkan kolom** = `slug`. Sel kosong berarti "jangan diubah", jadi sinopsis, relasi, dan kolom lain tetap utuh.
    - Hindari memperbarui massal buku yang sedang punya perubahan draf yang belum ditayangkan. Selesaikan atau buang dulu draf itu di panel admin.
 
@@ -49,7 +49,9 @@ Baris pertama adalah nama kolom dan harus persis seperti di templat. Urutan kolo
 | `slug` | Wajib. Huruf kecil dan tanda hubung, menjadi alamat halaman. Jangan diubah setelah tayang. | `membaca-suara-pemilih` |
 | `title` | Wajib. Judul buku. | `Membaca Suara Pemilih` |
 | `subtitle` | Subjudul, boleh kosong. | |
-| `authors` | Wajib. **Slug** penulis, dipisah `\|`. Penulis harus sudah diimpor. | `budi-santoso\|siti-rahma` |
+| `authors` | Wajib bila `editors` kosong. **Slug** penulis dipisah `\|`; urutan = urutan tampil. Penulis harus sudah diimpor. | `budi-santoso\|siti-rahma` |
+| `editors` | Penyunting, untuk buku suntingan (bunga rampai). Slug dipisah `\|`, diambil dari daftar penulis. | `ratna-wulandari` |
+| `translators` | Penerjemah, boleh kosong. Slug dipisah `\|`, diambil dari daftar penulis. | `dimas-hartono` |
 | `isbn13` | Tulis **dengan tanda hubung**, atau format kolomnya sebagai Teks di Excel. Angka pemeriksa ikut diperiksa. | `978-623-00-0001-0` |
 | `publishedYear` | Tahun, bilangan bulat 1900–2200. | `2026` |
 | `pageCount`, `weightGram` | Bilangan bulat tanpa pemisah ribuan. | `312`, `420` |
@@ -122,7 +124,7 @@ Baris yang berhasil tetap tersimpan. Perbaiki hanya baris yang ditolak di spread
 
 **⋯ → Ekspor** di daftar koleksi menghasilkan CSV atau JSON yang langsung diunduh. Berkas ekspor tidak disimpan di server.
 
-- Di CSV, penulis, kategori, dan seri ditulis sebagai **slug**, dan sampul sebagai **nama berkas**. Hasil ekspor bisa diubah lalu diimpor ulang dengan mode Perbarui, dicocokkan dengan `slug`.
+- Di CSV, penulis, penyunting, penerjemah, kategori, dan seri ditulis sebagai **slug**, dan sampul sebagai **nama berkas**. Hasil ekspor bisa diubah lalu diimpor ulang dengan mode Perbarui, dicocokkan dengan `slug`.
 - Sinopsis dan teks kaya lain diekspor sebagai JSON (diawali `{"root":…`) agar format tebal, miring, dan daftar tetap utuh saat diimpor ulang. Jangan menyunting JSON itu dengan tangan. Untuk mengganti sinopsis, timpa selnya dengan teks biasa.
 - Hanya data yang boleh Anda lihat yang ikut terekspor.
 

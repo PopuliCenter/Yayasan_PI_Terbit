@@ -164,6 +164,10 @@ const authorData = [
     name: "Hendra Gunawan",
     shortBio: "Ekonom politik; meneliti hubungan anggaran daerah, kemiskinan, dan pelayanan publik.",
   },
+  {
+    name: "Dimas Hartono",
+    shortBio: "Penerjemah naskah ilmu sosial dari bahasa Inggris dan Belanda.",
+  },
 ];
 const authors: Record<string, number> = {};
 for (const a of authorData) {
@@ -190,7 +194,10 @@ log(`${authorData.length} penulis`);
 type BookSeed = {
   title: string;
   subtitle?: string;
+  /** Boleh kosong untuk buku suntingan; isi `editors`. */
   authors: string[];
+  editors?: string[];
+  translators?: string[];
   categories: string[];
   isbn: string;
   year: number;
@@ -366,6 +373,27 @@ const books: BookSeed[] = [
     toc: ["Kota dan Warga", "Kanal Pengaduan", "Anggaran Partisipatif", "Data Terbuka", "Menilai Inovasi"],
     daysAgo: 220,
   },
+  {
+    // Contoh buku suntingan (bunga rampai): tanpa penulis, dengan penyunting dan penerjemah.
+    title: "Desentralisasi dari Bawah",
+    subtitle: "Bunga Rampai Kajian Pemerintahan Daerah",
+    authors: [],
+    editors: ["Ratna Wulandari", "Hendra Gunawan"],
+    translators: ["Dimas Hartono"],
+    categories: ["Kebijakan Publik", "Politik & Demokrasi"],
+    isbn: sampleIsbn(9),
+    year: 2026,
+    pages: 384,
+    price: 125000,
+    availability: "tersedia",
+    bg: "#2c4a3e",
+    accent: "#f9c265",
+    synopsis: [
+      "Dua belas peneliti dari dalam dan luar negeri menulis tentang pemerintahan daerah dua dekade setelah otonomi: kewenangan, anggaran, dan partisipasi warga. Bab dari penulis luar negeri diterjemahkan ke bahasa Indonesia.",
+    ],
+    toc: ["Pengantar Penyunting", "Bagian I: Kewenangan", "Bagian II: Anggaran", "Bagian III: Warga", "Penutup"],
+    daysAgo: 12,
+  },
 ];
 
 const createdBooks: { id: number; title: string }[] = [];
@@ -373,7 +401,7 @@ let seriesOrder = 0;
 for (const b of books) {
   const png = await makeCover({
     title: b.title,
-    author: b.authors.join(" & "),
+    author: b.authors.length ? b.authors.join(" & ") : `${(b.editors ?? []).join(" & ")} (ed.)`,
     bg: b.bg,
     accent: b.accent,
     seriesLabel: b.series ? "Seri Demokrasi Lokal" : undefined,
@@ -409,6 +437,8 @@ for (const b of books) {
       subtitle: b.subtitle,
       slug: "",
       authors: b.authors.map((name) => authors[name]),
+      editors: (b.editors ?? []).map((name) => authors[name]),
+      translators: (b.translators ?? []).map((name) => authors[name]),
       categories: b.categories.map((name) => categories[name]),
       isbn13: b.isbn,
       publishedYear: b.year,

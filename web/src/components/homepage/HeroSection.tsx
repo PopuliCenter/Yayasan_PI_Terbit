@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PriceTag } from "@/components/BookMeta";
 import { CoverImage } from "@/components/CoverImage";
 import { SearchIcon } from "@/components/Icons";
-import { authorNames, joinNames } from "@/lib/format";
+import { byline, contributorNames } from "@/lib/format";
 import { resolveIntro, selectSpotlight, type HeroBlock, type HomepageData } from "@/lib/homepage-plan";
 import { lexicalToPlainText } from "@/lib/richtext";
 
@@ -11,7 +11,7 @@ type Props = { block: HeroBlock; data: HomepageData; publisherName: string };
 /** Pembuka: judul, kalimat identitas penerbit (selalu ada), pencarian, dan sorotan buku. */
 export function HeroSection({ block, data, publisherName }: Props) {
   const { book: spotlight, label } = selectSpotlight(block, data);
-  const spotlightAuthors = spotlight ? joinNames(authorNames(spotlight)) : "";
+  const spotlightAuthors = spotlight ? byline(contributorNames(spotlight)) : "";
   const spotlightBlurb = spotlight ? lexicalToPlainText(spotlight.synopsis, 220) : "";
 
   return (

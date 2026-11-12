@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Book } from "@/payload-types";
-import { authorNames, joinNames } from "@/lib/format";
+import { byline, contributorNames } from "@/lib/format";
 import { AvailabilityBadge, PriceTag } from "./BookMeta";
 import { CoverImage } from "./CoverImage";
 
@@ -13,7 +13,7 @@ type Props = {
 
 export function BookCard({ book, priority, headingLevel = "h3" }: Props) {
   const Heading = headingLevel;
-  const authors = joinNames(authorNames(book));
+  const authors = byline(contributorNames(book));
   return (
     <article className="group relative flex flex-col">
       <div className="overflow-hidden rounded-[2px] bg-paper-2 shadow-[0_1px_2px_rgba(15,35,66,0.18)] dark:ring-1 dark:ring-line">

@@ -1,5 +1,5 @@
 import type { Book } from "@/payload-types";
-import { authorNames, formatRupiah, joinNames } from "./format";
+import { contributorNames, formatRupiah, joinNames } from "./format";
 import { getDisplayPrice } from "./pricing";
 
 export const DEFAULT_WA_TEMPLATE =
@@ -8,13 +8,22 @@ export const DEFAULT_WA_TEMPLATE =
 /** Isi templat pesan dari pengaturan dengan data buku. Penanda yang tidak dikenal dibiarkan. */
 export const buildWaMessage = (
   template: string | null | undefined,
-  book: Pick<Book, "title" | "authors" | "isbn13" | "price" | "listPrice" | "discountStart" | "discountEnd" | "slug">,
+  book: Pick<
+    Book,
+    "title" | "authors" | "editors" | "isbn13" | "price" | "listPrice" | "discountStart" | "discountEnd" | "slug"
+  >,
   pageUrl: string,
 ): string => {
   const { price } = getDisplayPrice(book);
+  // Nama lengkap tanpa "dkk." atau "(ed.)": templat bawaan sudah mengapit {penulis} dengan kurung.
+  const c = contributorNames(book);
   const values: Record<string, string> = {
     judul: book.title,
-    penulis: joinNames(authorNames(book)) || "-",
+    penulis: c.authors.length
+      ? joinNames(c.authors)
+      : c.editors.length
+        ? `penyunting ${joinNames(c.editors)}`
+        : "-",
     harga: formatRupiah(price),
     isbn: book.isbn13 || "-",
     url: pageUrl,

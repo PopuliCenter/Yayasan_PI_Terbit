@@ -1,4 +1,5 @@
-import type { CollectionConfig } from "payload";
+import type { CollectionConfig, RelationshipFieldManyValidation } from "payload";
+import { relationship } from "payload/shared";
 import { fieldIsAdmin, fieldIsKatalog, isKatalog, isOrder, publishedOrAdmin } from "../access";
 import { seoMetaGroup } from "../fields/seo";
 import { slugField } from "../fields/slug";
@@ -40,12 +41,35 @@ export const validateIsbn13 = (value: unknown): true | string => {
   return true;
 };
 
+const filled = (v: unknown): boolean => Array.isArray(v) && v.length > 0;
+
+/**
+ * Buku tayang wajib punya minimal satu penulis ATAU satu penyunting (bunga rampai).
+ * Penerjemah saja tidak cukup. Bila `value` undefined (simpan sebagian, mis. admin order
+ * yang field penulisnya dibuang access), nilai tersimpan di `siblingData` yang dipakai.
+ */
+export const hasAuthorOrEditor = (value: unknown, siblingData?: Record<string, unknown>): boolean =>
+  filled(value !== undefined ? value : siblingData?.authors) || filled(siblingData?.editors);
+
+export const CONTRIBUTOR_REQUIRED = "Isi minimal satu penulis. Untuk buku suntingan (bunga rampai), isi penyunting.";
+
+/**
+ * Validasi kustom MENGGANTIKAN validasi relasi bawaan Payload, jadi `relationship()`
+ * dipanggil lebih dulu agar pemeriksaan ID tetap berjalan. Payload tidak memvalidasi
+ * field saat menyimpan draf, sehingga aturan ini hanya berlaku saat menayangkan.
+ */
+export const validateAuthors: RelationshipFieldManyValidation = async (value, options) => {
+  const base = await relationship(value, options);
+  if (base !== true) return base;
+  return hasAuthorOrEditor(value, options.siblingData as Record<string, unknown>) ? true : CONTRIBUTOR_REQUIRED;
+};
+
 export const Books: CollectionConfig = {
   slug: "books",
   labels: { singular: "Buku", plural: "Buku" },
   admin: {
     useAsTitle: "title",
-    defaultColumns: ["cover", "title", "authors", "price", "availability", "_status", "updatedAt"],
+    defaultColumns: ["cover", "title", "authors", "editors", "price", "availability", "_status", "updatedAt"],
     group: "Katalog",
     description:
       "Satu entri per judul. Berat dan dimensi dipakai admin untuk menghitung ongkir manual, dan akan dipakai otomatis bila toko penuh dibuka. Impor/ekspor CSV lewat menu ⋯ di daftar buku; templat di /templat/impor-buku.csv.",
@@ -107,8 +131,39 @@ export const Books: CollectionConfig = {
               relationTo: "authors",
               hasMany: true,
               label: "Penulis",
-              required: true,
+              validate: validateAuthors,
               access: { update: fieldIsKatalog },
+              admin: {
+                isSortable: true,
+                description:
+                  "Seret untuk mengubah urutan. Boleh kosong untuk buku suntingan (bunga rampai) yang mencantumkan penyunting.",
+              },
+              custom: { "plugin-import-export": { hooks: { beforeExport: exportSlugs } } },
+            },
+            {
+              name: "editors",
+              type: "relationship",
+              relationTo: "authors",
+              hasMany: true,
+              label: "Penyunting",
+              access: { update: fieldIsKatalog },
+              admin: {
+                isSortable: true,
+                description: "Untuk buku suntingan. Orangnya dipilih dari daftar Penulis.",
+              },
+              custom: { "plugin-import-export": { hooks: { beforeExport: exportSlugs } } },
+            },
+            {
+              name: "translators",
+              type: "relationship",
+              relationTo: "authors",
+              hasMany: true,
+              label: "Penerjemah",
+              access: { update: fieldIsKatalog },
+              admin: {
+                isSortable: true,
+                description: "Untuk buku terjemahan. Orangnya dipilih dari daftar Penulis.",
+              },
               custom: { "plugin-import-export": { hooks: { beforeExport: exportSlugs } } },
             },
             {

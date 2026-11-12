@@ -7,9 +7,9 @@ import { getPayloadClient } from "./payload";
  * tanda hubung ditemukan, dan hasil < 1 dtk untuk 1.000 judul.
  *
  * Pencocokan fuzzy dilakukan di memori dari indeks ringan (judul, subjudul, penulis,
- * seri, ISBN), bukan di SQL, supaya perilakunya sama di SQLite (dev) dan Postgres
- * (produksi) tanpa ekstensi pg_trgm. Untuk 1.000 judul indeksnya hanya puluhan KB
- * dan pencarian selesai dalam hitungan milidetik.
+ * penyunting, penerjemah, seri, ISBN), bukan di SQL, supaya perilakunya sama di SQLite
+ * (dev) dan Postgres (produksi) tanpa ekstensi pg_trgm. Untuk 1.000 judul indeksnya
+ * hanya puluhan KB dan pencarian selesai dalam hitungan milidetik.
  */
 
 type Entry = {
@@ -43,8 +43,11 @@ const loadIndex = async (): Promise<Entry[]> => {
       subtitle: true,
       isbn13: true,
       authors: true,
+      editors: true,
+      translators: true,
       series: true,
     },
+    // Kunci populate adalah slug koleksi: `authors` juga mempersempit penyunting dan penerjemah.
     populate: {
       authors: { name: true },
       series: { title: true },
@@ -52,7 +55,7 @@ const loadIndex = async (): Promise<Entry[]> => {
   });
 
   const entries: Entry[] = result.docs.map((doc) => {
-    const authors = (doc.authors ?? [])
+    const authors = [...(doc.authors ?? []), ...(doc.editors ?? []), ...(doc.translators ?? [])]
       .map((a) => (typeof a === "object" && a ? a.name : ""))
       .join(" ");
     const series = typeof doc.series === "object" && doc.series ? doc.series.title : "";

@@ -12,6 +12,7 @@ const DB: Record<string, Doc[]> = {
   authors: [
     { id: 1, slug: "nama-penulis-a" },
     { id: 2, slug: "nama-penulis-b" },
+    { id: 3, slug: "nama-penyunting" },
   ],
   categories: [
     { id: 10, slug: "politik-lokal" },
@@ -50,6 +51,8 @@ const plainFields = [
   "slug",
   "title",
   "authors",
+  "editors",
+  "translators",
   "categories",
   "series",
   "seriesOrder",
@@ -132,9 +135,19 @@ describe("booksImportBefore", () => {
     assert.equal("updatedAt" in out, false);
   });
 
+  it("penyunting dan penerjemah menjadi ID sesuai urutan di berkas", async () => {
+    const [out] = await run(booksImportBefore, [
+      { ...validBook, authors: "", editors: "nama-penyunting|nama-penulis-a", translators: "nama-penulis-b" },
+    ]);
+    assert.deepEqual(issuesOf(out), []);
+    assert.deepEqual(out.authors, []);
+    assert.deepEqual(out.editors, [3, 1]);
+    assert.deepEqual(out.translators, [2]);
+  });
+
   it("satu kueri per koleksi, hanya-baca dengan select sempit", async () => {
     calls.length = 0;
-    await run(booksImportBefore, [validBook, { ...validBook, slug: "lain" }]);
+    await run(booksImportBefore, [validBook, { ...validBook, slug: "lain", editors: "nama-penyunting", translators: "nama-penulis-b" }]);
     assert.deepEqual(calls.map((c) => c.collection).sort(), ["authors", "categories", "media", "series"]);
     for (const c of calls) {
       assert.equal(c.overrideAccess, true);
@@ -148,6 +161,10 @@ describe("booksImportBefore", () => {
     ["angka pemeriksa ISBN salah", { isbn13: "978-623-00-0001-1" }, /Angka pemeriksa ISBN/],
     ["ISBN terpotong Excel", { isbn13: 9786230000000 }, /terpotong Excel/],
     ["penulis tidak dikenal", { authors: "nama-penulis-a|penulis-hantu" }, /Penulis "penulis-hantu".*tidak ditemukan/],
+    ["penyunting tidak dikenal", { editors: "x" }, /Penyunting "x" \(kolom editors\) tidak ditemukan/],
+    ["penerjemah tidak dikenal", { translators: "y" }, /Penerjemah "y" \(kolom translators\) tidak ditemukan/],
+    ["penulis dan penyunting sama-sama dikosongkan", { authors: "", editors: "" }, /minimal satu penulis.*penyunting/],
+    ["penulis null dan penyunting kosong (JSON)", { authors: null, editors: [] }, /minimal satu penulis.*penyunting/],
     ["kategori tidak dikenal", { categories: "fiksi" }, /Kategori "fiksi"/],
     ["berkas sampul tidak ada", { cover: "tidak-ada.jpg" }, /Sampul "tidak-ada\.jpg".*Media/],
     ["harga normal ≤ harga jual", { listPrice: 85000 }, /lebih besar dari harga jual/],
@@ -177,11 +194,27 @@ describe("booksImportBefore", () => {
     });
   }
 
+  it("penulis kosong tidak ditandai bila penyunting diisi, atau bila kolom editors tidak ada (templat lama)", async () => {
+    const [edited] = await run(booksImportBefore, [{ ...validBook, authors: "", editors: "nama-penyunting" }]);
+    assert.deepEqual(issuesOf(edited), []);
+    const [oldTemplate] = await run(booksImportBefore, [{ ...validBook, authors: "" }]);
+    assert.deepEqual(issuesOf(oldTemplate), []);
+    assert.equal("editors" in oldTemplate, false);
+  });
+
+  it("slug penulis yang tidak ditemukan hanya memberi pesan tidak ditemukan, bukan pesan penulis kosong", async () => {
+    const [out] = await run(booksImportBefore, [{ ...validBook, authors: "penulis-hantu", editors: "" }]);
+    const issues = issuesOf(out);
+    assert.ok(issues.some((m) => /Penulis "penulis-hantu"/.test(m)), issues.join(" | "));
+    assert.equal(issues.some((m) => /minimal satu penulis/.test(m)), false, issues.join(" | "));
+  });
+
   it("ISBN angka dinormalkan menjadi teks; kolom yang tidak ada dibiarkan (mode perbarui)", async () => {
     const [out] = await run(booksImportBefore, [{ slug: "x", isbn13: 9786230000003, price: 90000 }]);
     assert.deepEqual(issuesOf(out), []);
     assert.equal(out.isbn13, "9786230000003");
     assert.equal("authors" in out, false);
+    assert.equal("editors" in out, false);
     assert.equal("cover" in out, false);
   });
 
