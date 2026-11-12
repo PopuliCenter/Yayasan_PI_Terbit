@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { getHomeHref } from "@/lib/preview";
 import { absoluteUrl } from "@/lib/site";
 import { JsonLd } from "./JsonLd";
 
 export type Crumb = { label: string; href?: string };
 
-export function Breadcrumbs({ items }: { items: Crumb[] }) {
-  const all: Crumb[] = [{ label: "Beranda", href: "/" }, ...items];
+/** Remah roti + JSON-LD. "Beranda" menuju /pratinjau/beranda bila admin sedang mempratinjau. */
+export async function Breadcrumbs({ items }: { items: Crumb[] }) {
+  const all: Crumb[] = [{ label: "Beranda", href: await getHomeHref() }, ...items];
   return (
     <>
       <nav aria-label="Remah roti" className="text-sm text-muted">

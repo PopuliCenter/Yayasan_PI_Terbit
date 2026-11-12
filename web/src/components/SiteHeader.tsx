@@ -1,33 +1,43 @@
 import Link from "next/link";
+import { DEFAULT_NAV, type NavItem } from "@/lib/appearance/resolve";
 import { waUrl } from "@/lib/wa";
 import { CloseMenuOnNavigate } from "./CloseMenuOnNavigate";
 import { MenuIcon, SearchIcon, WhatsAppIcon } from "./Icons";
 import { Logo } from "./Logo";
+import { NavLink } from "./NavLink";
 import { ThemeToggle } from "./ThemeToggle";
 
-const NAV = [
-  { href: "/buku", label: "Katalog" },
-  { href: "/penulis", label: "Penulis" },
-  { href: "/kabar", label: "Kabar" },
-  { href: "/cara-pesan", label: "Cara Pesan" },
-  // Halaman CMS slug "tentang": profil penerbit + blok identitas badan hukum (dicek verifikator ISBN).
-  // "Untuk Institusi" sengaja dikeluarkan dari header; halamannya tetap ada lewat footer dan beranda.
-  { href: "/tentang", label: "Tentang Kami" },
-];
-
-type Props = { waNumber: string | null };
+type Props = {
+  waNumber: string | null;
+  /**
+   * Menu dari global Tampilan (resolveAppearance), sudah tervalidasi. Bawaan = menu sebelum
+   * fitur ini: Katalog, Penulis, Kabar, Cara Pesan, Tentang Kami (halaman CMS slug "tentang":
+   * profil penerbit + identitas badan hukum, dicek verifikator ISBN), dan Kontak (hanya menu HP).
+   * "Untuk Institusi" sengaja tidak di header; halamannya tetap ada lewat footer dan beranda.
+   */
+  nav?: NavItem[];
+  /** Sakelar tombol "Tanya via WA" (global Tampilan). Tombol tetap butuh nomor WA. */
+  showWhatsAppButton?: boolean;
+  /**
+   * Tujuan tautan logo. Di pratinjau admin menjadi /pratinjau/beranda, agar iframe tidak
+   * memuat "/" di host admin (yang dialihkan ke /admin).
+   */
+  homeHref?: string;
+};
 
 /**
  * Header nyaris tanpa JavaScript klien: menu HP memakai <details>, pencarian memakai form GET.
  * Bagian klien hanya tombol mode gelap (ThemeToggle) dan penutup menu saat pindah halaman.
+ * Layar lebar menampilkan item selain "Hanya menu HP"; menu HP menampilkan semua item.
  */
-export function SiteHeader({ waNumber }: Props) {
+export function SiteHeader({ waNumber, nav = DEFAULT_NAV, showWhatsAppButton = true, homeHref = "/" }: Props) {
+  const desktopNav = nav.filter((item) => !item.mobileOnly);
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-paper">
       <div className="page-container flex h-16 items-center gap-4">
         {/* Nama tautan = teks yang terlihat + "beranda" (WCAG 2.5.3 label in name). */}
         <Link
-          href="/"
+          href={homeHref}
           className="mr-auto flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap text-ink min-[360px]:gap-2.5"
         >
           {/* HP sangat sempit (< 360 px): logo dan nama sedikit diperkecil agar tetap satu baris. */}
@@ -43,11 +53,11 @@ export function SiteHeader({ waNumber }: Props) {
 
         <nav aria-label="Utama" className="hidden lg:block">
           <ul className="flex items-center gap-1">
-            {NAV.map((item) => (
-              <li key={item.href}>
-                <Link href={item.href} className="btn-ghost whitespace-nowrap px-3 text-sm font-medium">
+            {desktopNav.map((item) => (
+              <li key={`${item.href}-${item.label}`}>
+                <NavLink link={item} className="btn-ghost whitespace-nowrap px-3 text-sm font-medium">
                   {item.label}
-                </Link>
+                </NavLink>
               </li>
             ))}
           </ul>
@@ -66,7 +76,7 @@ export function SiteHeader({ waNumber }: Props) {
           <ThemeToggle />
         </div>
 
-        {waNumber ? (
+        {waNumber && showWhatsAppButton ? (
           <a
             href={waUrl(waNumber, "Halo, saya ingin bertanya tentang buku terbitan Yayasan Populi Indonesia.")}
             target="_blank"
@@ -105,18 +115,13 @@ export function SiteHeader({ waNumber }: Props) {
             </form>
             <nav aria-label="Menu HP">
               <ul>
-                {NAV.map((item) => (
-                  <li key={item.href}>
-                    <Link href={item.href} className="flex min-h-11 items-center rounded px-3 font-medium text-ink hover:bg-paper-2">
+                {nav.map((item) => (
+                  <li key={`${item.href}-${item.label}`}>
+                    <NavLink link={item} className="flex min-h-11 items-center rounded px-3 font-medium text-ink hover:bg-paper-2">
                       {item.label}
-                    </Link>
+                    </NavLink>
                   </li>
                 ))}
-                <li>
-                  <Link href="/kontak" className="flex min-h-11 items-center rounded px-3 font-medium text-ink hover:bg-paper-2">
-                    Kontak
-                  </Link>
-                </li>
               </ul>
             </nav>
             <div className="mt-2 border-t border-line pt-2">

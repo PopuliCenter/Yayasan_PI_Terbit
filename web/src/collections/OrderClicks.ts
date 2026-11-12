@@ -16,11 +16,12 @@ export const OrderClicks: CollectionConfig = {
   labels: { singular: "Klik Order", plural: "Klik Order" },
   admin: {
     useAsTitle: "id",
-    defaultColumns: ["book", "target", "platform", "createdAt"],
+    defaultColumns: ["createdAt", "book", "target", "platform", "path"],
     group: "Laporan",
     description:
       "Tanpa data pribadi: hanya buku, sasaran klik, halaman asal, dan waktu.",
   },
+  defaultSort: "-createdAt",
   access: {
     read: isAdmin,
     create: () => false,

@@ -32,7 +32,7 @@
   --color-accent-400: #f6a23a;
   --color-accent-500: #f08519;
   --color-accent-600: #e16a0f;
-  --color-accent-700: #bb4f10;
+  --color-accent-700: #b34a0f;
   --color-accent-800: #953f15;
 
   --color-paper: #faf8f4;
@@ -45,8 +45,12 @@
   /* Permukaan kartu, kolom isian, dan panel (putih di mode terang). */
   --color-surface: #ffffff;
 
-  /* Garis fokus keyboard: oranye tua, >= 3:1 terhadap kertas dan permukaan (WCAG 1.4.11). */
-  --color-focus: #bb4f10;
+  /*
+   * Garis fokus keyboard = accent-700 (teks/penanda aksen): oranye tua #b34a0f, >= 4,5:1 terhadap
+   * kertas, kertas-2, dan permukaan (WCAG 1.4.3; fokus cukup 3:1 menurut 1.4.11).
+   * Nilai lama #bb4f10 hanya 4,28:1 di kertas-2 (footer) sehingga tidak lolos AA.
+   */
+  --color-focus: #b34a0f;
 
   /* Hijau WhatsApp yang digelapkan: #11734b vs putih = 5,6:1. */
   --color-wa: #11734b;
@@ -232,8 +236,13 @@
   @apply mb-1.5 block text-sm font-semibold text-ink;
 }
 
+/*
+ * Tepi kolom isian = muted 80% (bukan `line`, yang hanya ~1,3:1): >= 3:1 terhadap kertas, kertas-2,
+ * dan permukaan di kedua mode (WCAG 1.4.11). Placeholder memakai muted penuh: >= 4,5:1 (WCAG 1.4.3);
+ * muted/80 hanya 3,8:1 di mode terang.
+ */
 @utility field-input {
-  @apply block min-h-11 w-full rounded-[3px] border border-line bg-surface px-3 py-2 text-[0.95rem] text-ink placeholder:text-muted/80 focus:border-primary-500;
+  @apply block min-h-11 w-full rounded-[3px] border border-muted/80 bg-surface px-3 py-2 text-[0.95rem] text-ink placeholder:text-muted focus:border-primary-500;
 }
 
 @utility card {

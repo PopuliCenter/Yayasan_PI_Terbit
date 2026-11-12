@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { BookGrid } from "@/components/BookCard";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { Pagination } from "@/components/Pagination";
-import { getCatalog, getCategoryBySlug } from "@/lib/data";
+import { getCatalog, getCategoryBySlug, getSettings } from "@/lib/data";
+import { redirectOrNotFound } from "@/lib/redirects";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -13,11 +13,11 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const category = await getCategoryBySlug(slug);
+  const [category, s] = await Promise.all([getCategoryBySlug(slug), getSettings()]);
   if (!category) return { title: "Kategori tidak ditemukan" };
   return {
     title: `Buku ${category.title}`,
-    description: category.description || `Buku bertopik ${category.title} terbitan Yayasan Populi Indonesia.`,
+    description: category.description || `Buku bertopik ${category.title} terbitan ${s.publisherName}.`,
     alternates: { canonical: `/kategori/${category.slug}` },
   };
 }
@@ -26,7 +26,7 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const { halaman } = await searchParams;
   const category = await getCategoryBySlug(slug);
-  if (!category) notFound();
+  if (!category) return redirectOrNotFound(`/kategori/${slug}`);
 
   const result = await getCatalog({ kategori: slug, halaman });
 

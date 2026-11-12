@@ -39,14 +39,16 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     PORT=3000 \
     MEDIA_DIR=/app/files/media \
-    PRIVATE_FILES_DIR=/app/files/private
+    PRIVATE_FILES_DIR=/app/files/private \
+    IMPORTS_DIR=/app/files/imports \
+    EXPORTS_DIR=/app/files/exports
 RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 # Titik mount volume FILES_VOLUME. Dibuat di image dengan pemilik nextjs agar volume
 # bernama yang masih kosong mewarisi kepemilikan ini saat pertama di-mount.
-RUN mkdir -p /app/files/media /app/files/private && chown -R nextjs:nodejs /app/files
+RUN mkdir -p /app/files/media /app/files/private /app/files/imports /app/files/exports && chown -R nextjs:nodejs /app/files
 USER nextjs
 EXPOSE 3000
 # 127.0.0.1, bukan localhost: di Alpine localhost bisa resolve ke ::1 (panduan W11).
@@ -58,12 +60,14 @@ CMD ["node", "server.js"]
 FROM base AS migrate
 ENV NODE_ENV=production \
     MEDIA_DIR=/app/files/media \
-    PRIVATE_FILES_DIR=/app/files/private
+    PRIVATE_FILES_DIR=/app/files/private \
+    IMPORTS_DIR=/app/files/imports \
+    EXPORTS_DIR=/app/files/exports
 RUN addgroup -S -g 1001 nodejs && adduser -S -u 1001 -G nodejs nextjs
 COPY --from=prod-deps --chown=nextjs:nodejs /app/node_modules ./node_modules
 COPY --chown=nextjs:nodejs package.json package-lock.json tsconfig.json ./
 COPY --chown=nextjs:nodejs src ./src
-RUN mkdir -p /app/files/media /app/files/private && chown -R nextjs:nodejs /app/files
+RUN mkdir -p /app/files/media /app/files/private /app/files/imports /app/files/exports && chown -R nextjs:nodejs /app/files
 USER nextjs
 # Default: terapkan migrasi yang belum jalan. Seed staging: `docker compose run --rm migrate npm run seed`.
 CMD ["npx", "--no-install", "payload", "migrate"]

@@ -7,6 +7,9 @@ penerbit.db
 penerbit.db-*
 media/
 uploads-private/
+# Berkas unggahan plugin impor/ekspor (IMPORTS_DIR/EXPORTS_DIR) saat pengembangan lokal.
+imports/
+exports/
 
 # Hasil build dan dependensi dibangun ulang di dalam image
 node_modules

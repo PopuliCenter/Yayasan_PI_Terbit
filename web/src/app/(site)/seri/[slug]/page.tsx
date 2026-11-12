@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { BookGrid } from "@/components/BookCard";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { JsonLd } from "@/components/JsonLd";
 import { getBooksInSeries, getSeriesBySlug } from "@/lib/data";
+import { redirectOrNotFound } from "@/lib/redirects";
 import { absoluteUrl } from "@/lib/site";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function SeriesPage({ params }: Props) {
   const { slug } = await params;
   const series = await getSeriesBySlug(slug);
-  if (!series) notFound();
+  if (!series) return redirectOrNotFound(`/seri/${slug}`);
 
   // Diurutkan menurut nomor jilid (F-KAT-02).
   const books = await getBooksInSeries(series.id);

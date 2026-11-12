@@ -41,6 +41,8 @@ npm run dev
 | `npm test` | Unit test (validasi JWT Access, harga coret, ISBN, pesan WA, pencarian fuzzy) |
 | `npm run typecheck` | Pemeriksaan TypeScript |
 
+Setelah konfigurasi Payload berubah, jalankan `generate:types` **dan** `generate:importmap`, lalu commit `src/payload-types.ts` dan `src/app/(payload)/admin/importMap.js`. Build Docker tidak pernah membuat ulang import map; CI gagal bila keduanya tidak sesuai konfigurasi.
+
 ## Migrasi Postgres
 
 Produksi memakai Postgres dengan `push: false`: skema hanya berubah lewat migrasi di `src/migrations/`. Setiap kali koleksi diubah, buat migrasi dengan Postgres lokal sementara:
@@ -61,13 +63,19 @@ Commit berkas `.ts` dan `.json` di `src/migrations/`. Job e2e CI menerapkan semu
 
 ```
 src/
-  payload.config.ts        Konfigurasi Payload (koleksi, adapter DB, log audit, bahasa Indonesia)
+  payload.config.ts        Konfigurasi Payload (koleksi, plugin, adapter DB, log audit, dasbor,
+                           pratinjau, bahasa Indonesia). Impor runtime wajib relatif ('./...')
   collections/             Model data: Books, Authors, Categories, Series, Media, Pages, Posts,
                            Orders (buku pesanan), PrivateFiles, Inquiries, Subscribers,
                            OrderClicks, AuditLogs, Users
-  globals/Settings.ts      Identitas penyelenggara, nomor WA, jam layanan, marketplace, teks persetujuan
+  globals/                 Settings (identitas, WA, marketplace, teks persetujuan),
+                           Appearance (Tampilan Situs), Homepage (Beranda)
+  plugins/                 SEO, Pengalihan URL, Formulir, Impor/Ekspor (plugin resmi Payload)
+  admin/, components/admin/ Dasbor, widget, laporan, logo, dan komponen field admin
+  endpoints/reports.ts     Unduhan CSV laporan (/api/laporan/...)
+  i18n/admin-id.ts         Terjemahan tambahan panel admin
   access/                  Aturan peran: super-admin, admin-katalog, admin-order
-  hooks/audit.ts           Log audit semua aksi tulis admin (F-ADM-05)
+  hooks/                   Log audit (F-ADM-05), pengalihan otomatis saat slug berubah
   app/(site)/              Situs publik
   app/(payload)/           Panel admin dan REST API Payload (jangan diubah manual)
   app/sitemap.ts, robots.ts
@@ -75,6 +83,20 @@ src/
   lib/                     Kueri data, pencarian fuzzy, harga, pesan WA, anti-bot
   seed/                    Data contoh
 ```
+
+## Panel admin
+
+- **Hanya bahasa Indonesia.** Pilihan bahasa dihapus; string yang belum ada di paket `id` Payload (Lexical, plugin SEO, pengalihan, impor/ekspor, formulir) diisi `src/i18n/admin-id.ts`.
+- **Dasbor.** Widget: Ringkasan katalog, Pesan masuk terbaru, Pesanan perlu tindakan, Minat per judul, Rekap pesanan per judul. Susunan bawaan mengikuti peran. Tiap admin bisa menata ulang lewat **Sunting Dasbor**; kembali ke susunan bawaan dengan **Atur Ulang Tata Letak**. Tata letak tersimpan per pengguna (tanpa tabel baru).
+- **Laporan** (`/admin/laporan`, F-LAP-01/02): minat per judul (klik WA/marketplace) dan rekap pesanan per judul dalam rentang tanggal WIB, masing-masing dengan **Unduh CSV** (`/api/laporan/minat-per-judul`, `/api/laporan/pesanan-per-judul`). Isinya agregat, tanpa nama atau kontak pembeli. Rekap pesanan hanya untuk peran yang boleh membaca pesanan. Endpoint CSV hanya melayani host admin.
+- **Tampilan Situs** (global `appearance`): palet dan warna aksen, menu atas, footer, dan pengumuman situs, dengan pratinjau.
+- **Beranda** (global `homepage`): susunan blok beranda dan tab SEO-nya.
+- **Pratinjau.** Buku, Halaman, Kabar, Beranda, dan Tampilan Situs bisa dipratinjau langsung dalam beberapa ukuran layar. Pratinjau memakai alamat relatif `/pratinjau/...`, jadi hanya jalan di host admin; di apex toko-proxy membalas 404.
+- **SEO.** Tab SEO (judul, deskripsi, gambar) di Buku, Halaman, Kabar, dan Beranda, dengan isi otomatis.
+- **Pengalihan URL** (Pengaturan → Pengalihan URL): alamat lama → halaman yang benar. Mengubah slug buku, halaman, kabar, penulis, kategori, atau seri yang sudah tayang membuat pengalihan otomatis.
+- **Impor/Ekspor** katalog lewat CSV (buku, penulis, kategori, seri): menu **⋯** di daftar koleksi; riwayat di Pengaturan → Riwayat Impor. Templat di `/templat/impor-*.csv`. Panduan lengkap: [`../docs/IMPOR-KATALOG.md`](../docs/IMPOR-KATALOG.md).
+- **Formulir** (Konten → Formulir): formulir buatan admin yang dipasang di halaman lewat blok Formulir. Kiriman masuk ke Pesanan → Kiriman Formulir dan dihapus otomatis setelah masa simpannya. Penghapusan berjalan di dalam app paling sering sekali per 6 jam, dipicu health check `/healthz` (healthcheck Docker tiap 30 dtk) setelah respons terkirim, jadi kiriman terhapus paling lambat sekitar 6 jam setelah kedaluwarsa tanpa cron. Jalur manual: `npx payload run ./src/scripts/purge-form-submissions.ts` (di server lewat service `migrate`, lihat [`../docs/DEPLOY.md`](../docs/DEPLOY.md) §9a).
+- Avatar admin memakai gambar bawaan (bukan Gravatar, agar hash email admin tidak dikirim ke luar).
 
 ## Keputusan desain yang perlu diketahui
 
@@ -94,7 +116,6 @@ src/
 | Hal | Alasan / ketergantungan |
 | --- | --- |
 | Email notifikasi formulir ke admin | Menunggu pilihan pengirim email (keputusan no. 5). Pesan sudah tersimpan di admin → Pesan Masuk. |
-| Impor CSV katalog (F-ADM-03, Should) | Increment berikutnya |
 | Daftar pesan banyak judul → satu pesan WA (F-ORD-04, Should) | Increment berikutnya |
-| Laporan klik & rekap pesanan per judul di dasbor (F-LAP-01/02) | Data sudah tercatat; tampilan laporan belum dibuat |
+| Kunjungan per judul (bagian F-LAP-01) | Kunjungan halaman belum dicatat. Pilihan: penghitung tanpa data pribadi (koleksi + migrasi baru), Cloudflare Web Analytics, atau kolom ini dihapus. Laporan saat ini memakai klik WA/marketplace. |
 | 2FA wajib super admin (F-ADM-05) | Dipenuhi di lapisan Cloudflare Access (policy email + MFA) untuk `admin.<domain>`, ditambah validasi JWT di toko-proxy. Payload sendiri belum punya 2FA bawaan. |

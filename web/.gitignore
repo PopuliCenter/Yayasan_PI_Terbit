@@ -49,3 +49,5 @@ next-env.d.ts
 
 /media/
 /uploads-private/
+/imports/
+/exports/

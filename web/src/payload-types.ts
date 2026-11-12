@@ -74,14 +74,20 @@ export interface Config {
     media: Media;
     pages: Page;
     posts: Post;
+    inquiries: Inquiry;
     orders: Order;
     'private-files': PrivateFile;
-    inquiries: Inquiry;
-    subscribers: Subscriber;
     'order-clicks': OrderClick;
     'audit-logs': AuditLog;
+    subscribers: Subscriber;
     users: User;
+    redirects: Redirect;
+    forms: Form;
+    'form-submissions': FormSubmission;
+    exports: Export;
+    imports: Import;
     'payload-kv': PayloadKv;
+    'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -95,14 +101,20 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     posts: PostsSelect<false> | PostsSelect<true>;
+    inquiries: InquiriesSelect<false> | InquiriesSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     'private-files': PrivateFilesSelect<false> | PrivateFilesSelect<true>;
-    inquiries: InquiriesSelect<false> | InquiriesSelect<true>;
-    subscribers: SubscribersSelect<false> | SubscribersSelect<true>;
     'order-clicks': OrderClicksSelect<false> | OrderClicksSelect<true>;
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
+    subscribers: SubscribersSelect<false> | SubscribersSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    redirects: RedirectsSelect<false> | RedirectsSelect<true>;
+    forms: FormsSelect<false> | FormsSelect<true>;
+    'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
+    exports: ExportsSelect<false> | ExportsSelect<true>;
+    imports: ImportsSelect<false> | ImportsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -113,17 +125,33 @@ export interface Config {
   fallbackLocale: null;
   globals: {
     settings: Setting;
+    appearance: Appearance;
+    homepage: Homepage;
   };
   globalsSelect: {
     settings: SettingsSelect<false> | SettingsSelect<true>;
+    appearance: AppearanceSelect<false> | AppearanceSelect<true>;
+    homepage: HomepageSelect<false> | HomepageSelect<true>;
   };
   locale: null;
   widgets: {
+    'ringkasan-katalog': RingkasanKatalogWidget;
+    'pesan-masuk': PesanMasukWidget;
+    pesanan: PesananWidget;
+    'minat-per-judul': MinatPerJudulWidget;
+    'rekap-pesanan': RekapPesananWidget;
     collections: CollectionsWidget;
   };
   user: User;
   jobs: {
-    tasks: unknown;
+    tasks: {
+      createCollectionExport: TaskCreateCollectionExport;
+      createCollectionImport: TaskCreateCollectionImport;
+      inline: {
+        input: unknown;
+        output: unknown;
+      };
+    };
     workflows: unknown;
   };
 }
@@ -146,7 +174,7 @@ export interface UserAuthOperations {
   };
 }
 /**
- * Satu entri per judul. Berat dan dimensi dipakai admin untuk menghitung ongkir manual, dan akan dipakai otomatis bila toko penuh dibuka.
+ * Satu entri per judul. Berat dan dimensi dipakai admin untuk menghitung ongkir manual, dan akan dipakai otomatis bila toko penuh dibuka. Impor/ekspor CSV lewat menu ⋯ di daftar buku; templat di /templat/impor-buku.csv.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "books".
@@ -249,22 +277,18 @@ export interface Book {
         id?: string | null;
       }[]
     | null;
+  meta?: SeoMeta;
   /**
-   * Kosongkan untuk memakai judul buku. Ideal di bawah 60 karakter.
-   */
-  metaTitle?: string | null;
-  /**
-   * Satu sampai dua kalimat, 120–160 karakter. Kosongkan untuk memakai awal sinopsis.
-   */
-  metaDescription?: string | null;
-  /**
-   * Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Mengubahnya setelah terbit akan memutus tautan lama.
+   * Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Bila diubah setelah tayang, alamat lama otomatis dialihkan ke alamat baru (Pengaturan → Pengalihan URL).
    */
   slug: string;
   /**
    * Dipakai untuk urutan Terbaru.
    */
   publishedAt?: string | null;
+  /**
+   * Dipakai Sorotan otomatis dan Pilihan buku (sumber: unggulan) di Beranda.
+   */
   featured?: boolean | null;
   /**
    * Tidak pernah tampil di situs publik.
@@ -282,7 +306,7 @@ export interface Author {
   id: number;
   name: string;
   /**
-   * Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Mengubahnya setelah terbit akan memutus tautan lama.
+   * Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Bila diubah setelah tayang, alamat lama otomatis dialihkan ke alamat baru (Pengaturan → Pengalihan URL).
    */
   slug: string;
   photo?: (number | null) | Media;
@@ -374,7 +398,7 @@ export interface Category {
   id: number;
   title: string;
   /**
-   * Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Mengubahnya setelah terbit akan memutus tautan lama.
+   * Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Bila diubah setelah tayang, alamat lama otomatis dialihkan ke alamat baru (Pengaturan → Pengalihan URL).
    */
   slug: string;
   /**
@@ -396,13 +420,27 @@ export interface Series {
   id: number;
   title: string;
   /**
-   * Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Mengubahnya setelah terbit akan memutus tautan lama.
+   * Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Bila diubah setelah tayang, alamat lama otomatis dialihkan ke alamat baru (Pengaturan → Pengalihan URL).
    */
   slug: string;
   description?: string | null;
   cover?: (number | null) | Media;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * Semua kolom boleh kosong. Bila kosong, situs memakai judul, ringkasan atau sinopsis, dan sampul secara otomatis. Judul yang tidak memuat nama situs akan diberi akhiran nama situs.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SeoMeta".
+ */
+export interface SeoMeta {
+  title?: string | null;
+  description?: string | null;
+  /**
+   * Gambar untuk pratinjau tautan (WhatsApp, media sosial). Ideal 1200×630; situs otomatis membuat versi 1200×630.
+   */
+  image?: (number | null) | Media;
 }
 /**
  * Halaman statis: Tentang, Cara Pesan, Kebijakan Privasi, Ketentuan Penggunaan, Kirim Naskah.
@@ -414,13 +452,12 @@ export interface Page {
   id: number;
   title: string;
   /**
-   * Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Mengubahnya setelah terbit akan memutus tautan lama.
-   */
-  slug: string;
-  /**
-   * Dipakai sebagai deskripsi mesin pencari.
+   * Ringkasan halaman. Juga dipakai sebagai deskripsi mesin pencari bila tab SEO kosong.
    */
   summary?: string | null;
+  /**
+   * Formulir khusus bisa disisipkan lewat menu + (blok Formulir).
+   */
   content: {
     root: {
       type: string;
@@ -441,6 +478,11 @@ export interface Page {
    */
   policyVersion?: string | null;
   policyEffectiveDate?: string | null;
+  meta?: SeoMeta;
+  /**
+   * Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Bila diubah setelah tayang, alamat lama otomatis dialihkan ke alamat baru (Pengaturan → Pengalihan URL).
+   */
+  slug: string;
   showInFooter?: boolean | null;
   footerOrder?: number | null;
   updatedAt: string;
@@ -456,10 +498,6 @@ export interface Page {
 export interface Post {
   id: number;
   title: string;
-  /**
-   * Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Mengubahnya setelah terbit akan memutus tautan lama.
-   */
-  slug: string;
   excerpt: string;
   coverImage?: (number | null) | Media;
   content: {
@@ -478,10 +516,89 @@ export interface Post {
     [k: string]: unknown;
   };
   relatedBooks?: (number | Book)[] | null;
+  meta?: SeoMeta;
+  /**
+   * Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Bila diubah setelah tayang, alamat lama otomatis dialihkan ke alamat baru (Pengaturan → Pengalihan URL).
+   */
+  slug: string;
   publishedAt?: string | null;
   updatedAt: string;
   createdAt: string;
   _status?: ('draft' | 'published') | null;
+}
+/**
+ * Permintaan penawaran institusi, pertanyaan, pengaduan, dan pengiriman naskah.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inquiries".
+ */
+export interface Inquiry {
+  id: number;
+  subjectLine?: string | null;
+  type: 'institusi' | 'kontak' | 'pengaduan' | 'naskah' | 'stok';
+  name: string;
+  email: string;
+  phone?: string | null;
+  institutionName?: string | null;
+  role?: string | null;
+  message: string;
+  /**
+   * Diisi pembeli institusi pada formulir penawaran.
+   */
+  requestedItems?: string | null;
+  shippingAddress?: string | null;
+  /**
+   * Terisi otomatis bila pesan dikirim dari halaman buku.
+   */
+  relatedBook?: (number | null) | Book;
+  status: 'baru' | 'diproses' | 'selesai' | 'spam';
+  handledBy?: (number | null) | User;
+  /**
+   * Dipakai mengukur tenggat tanggapan (usulan ≤ 2 hari kerja).
+   */
+  respondedAt?: string | null;
+  internalNotes?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "users".
+ */
+export interface User {
+  id: number;
+  name: string;
+  /**
+   * Admin katalog menulis buku dan konten. Admin order menulis buku pesanan. Super admin mengelola pengguna dan pengaturan.
+   */
+  role: 'super-admin' | 'admin-katalog' | 'admin-order';
+  /**
+   * Penanda, bukan peran terpisah. Orang ini menangani permintaan hak subjek data dan notifikasi insiden.
+   */
+  isPdpOfficer?: boolean | null;
+  /**
+   * Tidak pernah ditampilkan di situs publik.
+   */
+  phone?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  resetPasswordRequestedAt?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
+  collection: 'users';
 }
 /**
  * Catatan pesanan yang masuk lewat WhatsApp atau marketplace. Isi paling lambat pada hari pesanan dibayar.
@@ -563,103 +680,6 @@ export interface PrivateFile {
   focalY?: number | null;
 }
 /**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "users".
- */
-export interface User {
-  id: number;
-  name: string;
-  /**
-   * Admin katalog menulis buku dan konten. Admin order menulis buku pesanan. Super admin mengelola pengguna dan pengaturan.
-   */
-  role: 'super-admin' | 'admin-katalog' | 'admin-order';
-  /**
-   * Penanda, bukan peran terpisah. Orang ini menangani permintaan hak subjek data dan notifikasi insiden.
-   */
-  isPdpOfficer?: boolean | null;
-  /**
-   * Tidak pernah ditampilkan di situs publik.
-   */
-  phone?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  email: string;
-  resetPasswordToken?: string | null;
-  resetPasswordExpiration?: string | null;
-  salt?: string | null;
-  hash?: string | null;
-  resetPasswordRequestedAt?: string | null;
-  loginAttempts?: number | null;
-  lockUntil?: string | null;
-  sessions?:
-    | {
-        id: string;
-        createdAt?: string | null;
-        expiresAt: string;
-      }[]
-    | null;
-  password?: string | null;
-  collection: 'users';
-}
-/**
- * Permintaan penawaran institusi, pertanyaan, pengaduan, dan pengiriman naskah.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "inquiries".
- */
-export interface Inquiry {
-  id: number;
-  subjectLine?: string | null;
-  type: 'institusi' | 'kontak' | 'pengaduan' | 'naskah' | 'stok';
-  name: string;
-  email: string;
-  phone?: string | null;
-  institutionName?: string | null;
-  role?: string | null;
-  message: string;
-  /**
-   * Diisi pembeli institusi pada formulir penawaran.
-   */
-  requestedItems?: string | null;
-  shippingAddress?: string | null;
-  /**
-   * Terisi otomatis bila pesan dikirim dari halaman buku.
-   */
-  relatedBook?: (number | null) | Book;
-  status: 'baru' | 'diproses' | 'selesai' | 'spam';
-  handledBy?: (number | null) | User;
-  /**
-   * Dipakai mengukur tenggat tanggapan (usulan ≤ 2 hari kerja).
-   */
-  respondedAt?: string | null;
-  internalNotes?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * Daftar email yang menyetujui menerima kabar terbitan. Pencabutan persetujuan dicatat, bukan dihapus diam-diam.
- *
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "subscribers".
- */
-export interface Subscriber {
-  id: number;
-  email: string;
-  name?: string | null;
-  active?: boolean | null;
-  consentAt: string;
-  consentVersion: string;
-  /**
-   * Disimpan apa adanya sebagai bukti persetujuan.
-   */
-  consentText: string;
-  source?: string | null;
-  unsubscribeToken?: string | null;
-  unsubscribedAt?: string | null;
-  updatedAt: string;
-  createdAt: string;
-}
-/**
  * Tanpa data pribadi: hanya buku, sasaran klik, halaman asal, dan waktu.
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -703,6 +723,392 @@ export interface AuditLog {
   createdAt: string;
 }
 /**
+ * Daftar email yang menyetujui menerima kabar terbitan. Pencabutan persetujuan dicatat, bukan dihapus diam-diam.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscribers".
+ */
+export interface Subscriber {
+  id: number;
+  email: string;
+  name?: string | null;
+  active?: boolean | null;
+  consentAt: string;
+  consentVersion: string;
+  /**
+   * Disimpan apa adanya sebagai bukti persetujuan.
+   */
+  consentText: string;
+  source?: string | null;
+  unsubscribeToken?: string | null;
+  unsubscribedAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Mengarahkan pengunjung dari alamat lama ke halaman yang benar. Pengalihan hanya berlaku bila alamat lama tidak lagi berisi halaman. Saat slug buku, halaman, kabar, penulis, kategori, atau seri yang sudah tayang diubah, pengalihan dibuat otomatis.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects".
+ */
+export interface Redirect {
+  id: number;
+  /**
+   * Bagian setelah nama domain, mis. /buku/judul-lama. Tautan lengkap boleh ditempel: domain, ?… dan #… dibuang otomatis.
+   */
+  from: string;
+  to?: {
+    type?: ('reference' | 'custom') | null;
+    /**
+     * Tujuan mengikuti slug terbaru dokumen ini. Bila dokumen belum tayang, pengalihan belum berlaku.
+     */
+    reference?:
+      | ({
+          relationTo: 'books';
+          value: number | Book;
+        } | null)
+      | ({
+          relationTo: 'pages';
+          value: number | Page;
+        } | null)
+      | ({
+          relationTo: 'posts';
+          value: number | Post;
+        } | null)
+      | ({
+          relationTo: 'authors';
+          value: number | Author;
+        } | null)
+      | ({
+          relationTo: 'categories';
+          value: number | Category;
+        } | null)
+      | ({
+          relationTo: 'series';
+          value: number | Series;
+        } | null);
+    /**
+     * Alamat di situs ini diawali garis miring, mis. /kabar/peluncuran. Alamat situs lain (https://…) baru berlaku setelah disetujui super admin.
+     */
+    url?: string | null;
+  };
+  /**
+   * Pilih Permanen untuk slug yang diganti, agar mesin pencari memindahkan peringkatnya ke alamat baru.
+   */
+  type: '308' | '307';
+  /**
+   * Khusus super admin. Hanya untuk tautan resmi yang sudah diperiksa. Bila alamat tujuan diubah, persetujuan harus diberikan lagi.
+   */
+  allowExternal?: boolean | null;
+  approvedExternalUrl?: string | null;
+  source?: ('manual' | 'otomatis') | null;
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Formulir khusus (mis. pendaftaran acara, survei pembaca). Pertanyaan, pengaduan, dan penawaran institusi tetap lewat formulir Kontak dan Institusi.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forms".
+ */
+export interface Form {
+  id: number;
+  title: string;
+  /**
+   * Maksimal 30 kolom. Nama kolom dibuat otomatis dari label bila dikosongkan.
+   */
+  fields?:
+    | (
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            required?: boolean | null;
+            defaultValue?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'checkbox';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            required?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'email';
+          }
+        | {
+            message?: {
+              root: {
+                type: string;
+                children: {
+                  type: any;
+                  version: number;
+                  [k: string]: unknown;
+                }[];
+                direction: ('ltr' | 'rtl') | null;
+                format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+                indent: number;
+                version: number;
+              };
+              [k: string]: unknown;
+            } | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'message';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            defaultValue?: number | null;
+            required?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'number';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            defaultValue?: string | null;
+            placeholder?: string | null;
+            options?:
+              | {
+                  label: string;
+                  value: string;
+                  id?: string | null;
+                }[]
+              | null;
+            required?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'select';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            defaultValue?: string | null;
+            required?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'text';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            defaultValue?: string | null;
+            required?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'textarea';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            defaultValue?: string | null;
+            options?:
+              | {
+                  label: string;
+                  value: string;
+                  id?: string | null;
+                }[]
+              | null;
+            required?: boolean | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'radio';
+          }
+        | {
+            name: string;
+            label?: string | null;
+            width?: number | null;
+            required?: boolean | null;
+            defaultValue?: string | null;
+            id?: string | null;
+            blockName?: string | null;
+            blockType: 'date';
+          }
+      )[]
+    | null;
+  submitButtonLabel?: string | null;
+  confirmationType?: ('message' | 'redirect') | null;
+  confirmationMessage?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  redirect?: {
+    type?: ('reference' | 'custom') | null;
+    reference?: {
+      relationTo: 'pages';
+      value: number | Page;
+    } | null;
+    url?: string | null;
+  };
+  /**
+   * Matikan untuk menutup formulir tanpa menghapusnya. Pengunjung melihat pesan penutup.
+   */
+  acceptingResponses?: boolean | null;
+  /**
+   * Opsional. Mis. batas pendaftaran acara (WIB).
+   */
+  closesAt?: string | null;
+  closedMessage?: string | null;
+  /**
+   * Tampil di atas tombol kirim. Contoh: Data dipakai untuk mendaftarkan Anda ke peluncuran buku dan tidak dibagikan ke pihak lain.
+   */
+  purpose: string;
+  requireConsent?: boolean | null;
+  /**
+   * Kotak persetujuan tampil tidak tercentang; pengunjung harus mencentangnya sendiri.
+   */
+  consentLabel?: string | null;
+  /**
+   * Naikkan versinya setiap kali teks persetujuan atau tujuan diubah, mis. 1.1.
+   */
+  consentVersion?: string | null;
+  /**
+   * Kiriman dihapus otomatis setelah masa ini (30–1095 hari). Kiriman yang ditandai spam dihapus setelah 30 hari.
+   */
+  retentionDays: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * Isian pengunjung dari formulir khusus. Tidak ada email otomatis; periksa daftar ini secara berkala. Kiriman dihapus otomatis setelah masa simpan.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form-submissions".
+ */
+export interface FormSubmission {
+  id: number;
+  title?: string | null;
+  form: number | Form;
+  submissionData?:
+    | {
+        field: string;
+        label?: string | null;
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Menandai Spam memperpendek masa simpan menjadi 30 hari.
+   */
+  status: 'baru' | 'diproses' | 'selesai' | 'spam';
+  handledBy?: (number | null) | User;
+  internalNotes?: string | null;
+  /**
+   * Disalin dari formulir saat dikirim, bukan dari isian pengunjung.
+   */
+  consent?: {
+    given?: boolean | null;
+    at?: string | null;
+    version?: string | null;
+    text?: string | null;
+    purpose?: string | null;
+  };
+  sourcePath?: string | null;
+  expiresAt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exports".
+ */
+export interface Export {
+  id: number;
+  name?: string | null;
+  format: 'csv' | 'json';
+  limit?: number | null;
+  page?: number | null;
+  sort?: string | null;
+  sortOrder?: ('asc' | 'desc') | null;
+  drafts?: ('yes' | 'no') | null;
+  selectionToUse?: ('currentSelection' | 'currentFilters' | 'all') | null;
+  fields?: string[] | null;
+  collectionSlug: string;
+  where?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * Hasil impor CSV/JSON katalog. Baris yang gagal tercantum di Ringkasan Impor beserta alasannya. Templat kolom: /templat/impor-buku.csv, impor-penulis.csv, impor-kategori.csv, impor-seri.csv.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "imports".
+ */
+export interface Import {
+  id: number;
+  collectionSlug: string;
+  importMode?: ('create' | 'update' | 'upsert') | null;
+  /**
+   * Untuk mode Perbarui/Buat atau perbarui. Pakai slug (disarankan) atau isbn13; kolom itu wajib ada di berkas.
+   */
+  matchField?: string | null;
+  status?: ('pending' | 'completed' | 'partial' | 'failed') | null;
+  summary?: {
+    imported?: number | null;
+    updated?: number | null;
+    total?: number | null;
+    issues?: number | null;
+    issueDetails?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
@@ -718,6 +1124,98 @@ export interface PayloadKv {
     | number
     | boolean
     | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs".
+ */
+export interface PayloadJob {
+  id: number;
+  /**
+   * Input data provided to the job
+   */
+  input?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  taskStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  completedAt?: string | null;
+  totalTried?: number | null;
+  /**
+   * If hasError is true this job will not be retried
+   */
+  hasError?: boolean | null;
+  /**
+   * If hasError is true, this is the error that caused it
+   */
+  error?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Task execution log
+   */
+  log?:
+    | {
+        executedAt: string;
+        completedAt: string;
+        taskSlug: 'inline' | 'createCollectionExport' | 'createCollectionImport';
+        taskID: string;
+        input?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        output?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        state: 'failed' | 'succeeded';
+        error?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  taskSlug?: ('inline' | 'createCollectionExport' | 'createCollectionImport') | null;
+  queue?: string | null;
+  waitUntil?: string | null;
+  processing?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -755,20 +1253,16 @@ export interface PayloadLockedDocument {
         value: number | Post;
       } | null)
     | ({
+        relationTo: 'inquiries';
+        value: number | Inquiry;
+      } | null)
+    | ({
         relationTo: 'orders';
         value: number | Order;
       } | null)
     | ({
         relationTo: 'private-files';
         value: number | PrivateFile;
-      } | null)
-    | ({
-        relationTo: 'inquiries';
-        value: number | Inquiry;
-      } | null)
-    | ({
-        relationTo: 'subscribers';
-        value: number | Subscriber;
       } | null)
     | ({
         relationTo: 'order-clicks';
@@ -779,8 +1273,24 @@ export interface PayloadLockedDocument {
         value: number | AuditLog;
       } | null)
     | ({
+        relationTo: 'subscribers';
+        value: number | Subscriber;
+      } | null)
+    | ({
         relationTo: 'users';
         value: number | User;
+      } | null)
+    | ({
+        relationTo: 'redirects';
+        value: number | Redirect;
+      } | null)
+    | ({
+        relationTo: 'forms';
+        value: number | Form;
+      } | null)
+    | ({
+        relationTo: 'form-submissions';
+        value: number | FormSubmission;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -867,8 +1377,7 @@ export interface BooksSelect<T extends boolean = true> {
         label?: T;
         id?: T;
       };
-  metaTitle?: T;
-  metaDescription?: T;
+  meta?: T | SeoMetaSelect<T>;
   slug?: T;
   publishedAt?: T;
   featured?: T;
@@ -876,6 +1385,15 @@ export interface BooksSelect<T extends boolean = true> {
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "SeoMeta_select".
+ */
+export interface SeoMetaSelect<T extends boolean = true> {
+  title?: T;
+  description?: T;
+  image?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -984,11 +1502,12 @@ export interface MediaSelect<T extends boolean = true> {
  */
 export interface PagesSelect<T extends boolean = true> {
   title?: T;
-  slug?: T;
   summary?: T;
   content?: T;
   policyVersion?: T;
   policyEffectiveDate?: T;
+  meta?: T | SeoMetaSelect<T>;
+  slug?: T;
   showInFooter?: T;
   footerOrder?: T;
   updatedAt?: T;
@@ -1001,15 +1520,39 @@ export interface PagesSelect<T extends boolean = true> {
  */
 export interface PostsSelect<T extends boolean = true> {
   title?: T;
-  slug?: T;
   excerpt?: T;
   coverImage?: T;
   content?: T;
   relatedBooks?: T;
+  meta?: T | SeoMetaSelect<T>;
+  slug?: T;
   publishedAt?: T;
   updatedAt?: T;
   createdAt?: T;
   _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "inquiries_select".
+ */
+export interface InquiriesSelect<T extends boolean = true> {
+  subjectLine?: T;
+  type?: T;
+  name?: T;
+  email?: T;
+  phone?: T;
+  institutionName?: T;
+  role?: T;
+  message?: T;
+  requestedItems?: T;
+  shippingAddress?: T;
+  relatedBook?: T;
+  status?: T;
+  handledBy?: T;
+  respondedAt?: T;
+  internalNotes?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1067,46 +1610,6 @@ export interface PrivateFilesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "inquiries_select".
- */
-export interface InquiriesSelect<T extends boolean = true> {
-  subjectLine?: T;
-  type?: T;
-  name?: T;
-  email?: T;
-  phone?: T;
-  institutionName?: T;
-  role?: T;
-  message?: T;
-  requestedItems?: T;
-  shippingAddress?: T;
-  relatedBook?: T;
-  status?: T;
-  handledBy?: T;
-  respondedAt?: T;
-  internalNotes?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "subscribers_select".
- */
-export interface SubscribersSelect<T extends boolean = true> {
-  email?: T;
-  name?: T;
-  active?: T;
-  consentAt?: T;
-  consentVersion?: T;
-  consentText?: T;
-  source?: T;
-  unsubscribeToken?: T;
-  unsubscribedAt?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "order-clicks_select".
  */
 export interface OrderClicksSelect<T extends boolean = true> {
@@ -1130,6 +1633,23 @@ export interface AuditLogsSelect<T extends boolean = true> {
   documentTitle?: T;
   operation?: T;
   changedFields?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "subscribers_select".
+ */
+export interface SubscribersSelect<T extends boolean = true> {
+  email?: T;
+  name?: T;
+  active?: T;
+  consentAt?: T;
+  consentVersion?: T;
+  consentText?: T;
+  source?: T;
+  unsubscribeToken?: T;
+  unsubscribedAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -1162,11 +1682,293 @@ export interface UsersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "redirects_select".
+ */
+export interface RedirectsSelect<T extends boolean = true> {
+  from?: T;
+  to?:
+    | T
+    | {
+        type?: T;
+        reference?: T;
+        url?: T;
+      };
+  type?: T;
+  allowExternal?: T;
+  approvedExternalUrl?: T;
+  source?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "forms_select".
+ */
+export interface FormsSelect<T extends boolean = true> {
+  title?: T;
+  fields?:
+    | T
+    | {
+        checkbox?:
+          | T
+          | {
+              name?: T;
+              label?: T;
+              width?: T;
+              required?: T;
+              defaultValue?: T;
+              id?: T;
+              blockName?: T;
+            };
+        email?:
+          | T
+          | {
+              name?: T;
+              label?: T;
+              width?: T;
+              required?: T;
+              id?: T;
+              blockName?: T;
+            };
+        message?:
+          | T
+          | {
+              message?: T;
+              id?: T;
+              blockName?: T;
+            };
+        number?:
+          | T
+          | {
+              name?: T;
+              label?: T;
+              width?: T;
+              defaultValue?: T;
+              required?: T;
+              id?: T;
+              blockName?: T;
+            };
+        select?:
+          | T
+          | {
+              name?: T;
+              label?: T;
+              width?: T;
+              defaultValue?: T;
+              placeholder?: T;
+              options?:
+                | T
+                | {
+                    label?: T;
+                    value?: T;
+                    id?: T;
+                  };
+              required?: T;
+              id?: T;
+              blockName?: T;
+            };
+        text?:
+          | T
+          | {
+              name?: T;
+              label?: T;
+              width?: T;
+              defaultValue?: T;
+              required?: T;
+              id?: T;
+              blockName?: T;
+            };
+        textarea?:
+          | T
+          | {
+              name?: T;
+              label?: T;
+              width?: T;
+              defaultValue?: T;
+              required?: T;
+              id?: T;
+              blockName?: T;
+            };
+        radio?:
+          | T
+          | {
+              name?: T;
+              label?: T;
+              width?: T;
+              defaultValue?: T;
+              options?:
+                | T
+                | {
+                    label?: T;
+                    value?: T;
+                    id?: T;
+                  };
+              required?: T;
+              id?: T;
+              blockName?: T;
+            };
+        date?:
+          | T
+          | {
+              name?: T;
+              label?: T;
+              width?: T;
+              required?: T;
+              defaultValue?: T;
+              id?: T;
+              blockName?: T;
+            };
+      };
+  submitButtonLabel?: T;
+  confirmationType?: T;
+  confirmationMessage?: T;
+  redirect?:
+    | T
+    | {
+        type?: T;
+        reference?: T;
+        url?: T;
+      };
+  acceptingResponses?: T;
+  closesAt?: T;
+  closedMessage?: T;
+  purpose?: T;
+  requireConsent?: T;
+  consentLabel?: T;
+  consentVersion?: T;
+  retentionDays?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "form-submissions_select".
+ */
+export interface FormSubmissionsSelect<T extends boolean = true> {
+  title?: T;
+  form?: T;
+  submissionData?:
+    | T
+    | {
+        field?: T;
+        label?: T;
+        value?: T;
+        id?: T;
+      };
+  status?: T;
+  handledBy?: T;
+  internalNotes?: T;
+  consent?:
+    | T
+    | {
+        given?: T;
+        at?: T;
+        version?: T;
+        text?: T;
+        purpose?: T;
+      };
+  sourcePath?: T;
+  expiresAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "exports_select".
+ */
+export interface ExportsSelect<T extends boolean = true> {
+  name?: T;
+  format?: T;
+  limit?: T;
+  page?: T;
+  sort?: T;
+  sortOrder?: T;
+  drafts?: T;
+  selectionToUse?: T;
+  fields?: T;
+  collectionSlug?: T;
+  where?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "imports_select".
+ */
+export interface ImportsSelect<T extends boolean = true> {
+  collectionSlug?: T;
+  importMode?: T;
+  matchField?: T;
+  status?: T;
+  summary?:
+    | T
+    | {
+        imported?: T;
+        updated?: T;
+        total?: T;
+        issues?: T;
+        issueDetails?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+  focalX?: T;
+  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
   key?: T;
   data?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs_select".
+ */
+export interface PayloadJobsSelect<T extends boolean = true> {
+  input?: T;
+  taskStatus?: T;
+  completedAt?: T;
+  totalTried?: T;
+  hasError?: T;
+  error?: T;
+  log?:
+    | T
+    | {
+        executedAt?: T;
+        completedAt?: T;
+        taskSlug?: T;
+        taskID?: T;
+        input?: T;
+        output?: T;
+        state?: T;
+        error?: T;
+        id?: T;
+      };
+  taskSlug?: T;
+  queue?: T;
+  waitUntil?: T;
+  processing?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1284,10 +2086,398 @@ export interface Setting {
    * Disimpan apa adanya bersama setiap pendaftaran sebagai bukti persetujuan. Ubah versinya bila teks ini diubah.
    */
   consentText: string;
+  /**
+   * Dipakai di halaman yang tidak punya deskripsi SEO sendiri.
+   */
   defaultMetaDescription?: string | null;
+  /**
+   * Gambar bagikan bawaan untuk halaman tanpa gambar sendiri. Ideal 1200×630.
+   */
   ogImage?: (number | null) | Media;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * Warna, menu atas, footer, dan pengumuman situs. Perubahan tersimpan sebagai draf; pengunjung melihatnya setelah Anda menekan Tayangkan.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "appearance".
+ */
+export interface Appearance {
+  id: number;
+  theme: {
+    preset: 'navy' | 'hijau' | 'petrol' | 'marun' | 'grafit';
+    /**
+     * Aksen dipakai untuk penanda wajib isi, lencana, garis fokus keyboard, dan sorotan teks. Warna tautan tetap mengikuti palet.
+     */
+    customAccent?: boolean | null;
+    /**
+     * Harus kontras minimal 4,5:1 terhadap kertas dan kartu.
+     */
+    accentLight?: string | null;
+    /**
+     * Kosongkan agar dihitung otomatis dari warna mode terang.
+     */
+    accentDark?: string | null;
+  };
+  /**
+   * Seret untuk mengubah urutan. Layar lebar menampilkan paling banyak 5 item; "Hanya menu HP" tampil di menu lipat saja.
+   */
+  headerNav?:
+    | {
+        label: string;
+        visibility: 'all' | 'mobile';
+        link: {
+          type: 'route' | 'page' | 'custom';
+          route?:
+            ('beranda' | 'katalog' | 'penulis' | 'kabar' | 'caraPesan' | 'tentang' | 'institusi' | 'kontak') | null;
+          /**
+           * Halaman yang belum terbit tidak tampil di situs sampai diterbitkan.
+           */
+          page?: (number | null) | Page;
+          /**
+           * Alamat di situs ini diawali /. Alamat luar harus diawali https://.
+           */
+          url?: string | null;
+          newTab?: boolean | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Tombol hanya muncul bila nomor WhatsApp diisi di Pengaturan Situs.
+   */
+  showWhatsAppButton?: boolean | null;
+  /**
+   * Kolom ini berisi halaman yang dicentang "Tampilkan di footer", lalu tautan tambahan di bawah.
+   */
+  footerInfoTitle?: string | null;
+  footerLinks?:
+    | {
+        label: string;
+        link: {
+          type: 'route' | 'page' | 'custom';
+          route?:
+            ('beranda' | 'katalog' | 'penulis' | 'kabar' | 'caraPesan' | 'tentang' | 'institusi' | 'kontak') | null;
+          /**
+           * Halaman yang belum terbit tidak tampil di situs sampai diterbitkan.
+           */
+          page?: (number | null) | Page;
+          /**
+           * Alamat di situs ini diawali /. Alamat luar harus diawali https://.
+           */
+          url?: string | null;
+          newTab?: boolean | null;
+        };
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Teks biasa satu-dua kalimat di baris paling bawah, mis. "Harga dapat berubah sewaktu-waktu."
+   */
+  footerNote?: string | null;
+  showNewsletter?: boolean | null;
+  /**
+   * Daftar akun diatur di Pengaturan Situs, tab Marketplace & media sosial.
+   */
+  showSocialLinks?: boolean | null;
+  announcement: {
+    enabled?: boolean | null;
+    text?: string | null;
+    tone?: ('info' | 'important') | null;
+    /**
+     * Kosongkan agar langsung tampil.
+     */
+    startsAt?: string | null;
+    /**
+     * Kosongkan agar tampil terus.
+     */
+    endsAt?: string | null;
+    linkLabel?: string | null;
+    link: {
+      type: 'none' | 'route' | 'page' | 'custom';
+      route?: ('beranda' | 'katalog' | 'penulis' | 'kabar' | 'caraPesan' | 'tentang' | 'institusi' | 'kontak') | null;
+      /**
+       * Halaman yang belum terbit tidak tampil di situs sampai diterbitkan.
+       */
+      page?: (number | null) | Page;
+      /**
+       * Alamat di situs ini diawali /. Alamat luar harus diawali https://.
+       */
+      url?: string | null;
+      newTab?: boolean | null;
+    };
+  };
+  _status?: ('draft' | 'published') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * Susun bagian halaman depan. Perubahan tersimpan otomatis sebagai draf; pengunjung baru melihatnya setelah Anda menekan Tayangkan. Bila Beranda diturunkan dari situs, situs memakai susunan bawaan.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "homepage".
+ */
+export interface Homepage {
+  id: number;
+  /**
+   * Bagian Pembuka wajib ada dan harus paling atas. Tarik bagian lain untuk mengubah urutan. Bagian yang disembunyikan tidak tampil di situs.
+   */
+  layout: (
+    | HomeHeroBlock
+    | HomeLatestBooksBlock
+    | HomeBookShelfBlock
+    | HomeTopicsBlock
+    | HomeOrderStepsBlock
+    | HomeCallToActionBlock
+    | HomeNewsBlock
+    | HomeTextBlock
+  )[];
+  meta?: SeoMeta;
+  _status?: ('draft' | 'published') | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeHeroBlock".
+ */
+export interface HomeHeroBlock {
+  heading: string;
+  /**
+   * Kalimat pertama wajib tetap “{penerbit} menerbitkan buku untuk pembaca umum.”: penanda {penerbit} diganti otomatis dengan nama penerbit resmi dari Pengaturan Situs, dan verifikator ISBN membaca kalimat ini di layar pertama. Kalimat sesudahnya bebas. Tautan "Tentang kami" selalu ditambahkan di akhir.
+   */
+  intro: string;
+  showSearch?: boolean | null;
+  searchPlaceholder?: string | null;
+  spotlightMode?: ('auto' | 'manual' | 'none') | null;
+  /**
+   * Bila buku ini belum tayang atau dihapus, sorotan kembali otomatis.
+   */
+  spotlightBook?: (number | null) | Book;
+  /**
+   * Kosongkan untuk label otomatis: "Pilihan kami" atau "Baru terbit".
+   */
+  spotlightLabel?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'hero';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeLatestBooksBlock".
+ */
+export interface HomeLatestBooksBlock {
+  heading: string;
+  /**
+   * Kelipatan 4 paling rapi di layar lebar.
+   */
+  limit: number;
+  showAllLink?: boolean | null;
+  allLinkLabel?: string | null;
+  emptyText?: string | null;
+  /**
+   * Bagian tetap tersimpan dan bisa ditampilkan lagi kapan saja.
+   */
+  hideSection?: boolean | null;
+  /**
+   * Bagian diberi latar kertas sedikit lebih gelap selebar layar. Warna diambil dari palet situs sehingga kontras tetap terjaga.
+   */
+  paperBand?: boolean | null;
+  /**
+   * Untuk tautan langsung ke bagian ini, mis. /#cara-pesan. Huruf kecil, angka, dan tanda hubung; diawali huruf.
+   */
+  anchor?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'latestBooks';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeBookShelfBlock".
+ */
+export interface HomeBookShelfBlock {
+  heading: string;
+  intro?: string | null;
+  source?: ('manual' | 'category' | 'featured') | null;
+  /**
+   * Urutan di sini = urutan di situs. Buku yang belum tayang tidak ditampilkan.
+   */
+  books?: (number | Book)[] | null;
+  category?: (number | null) | Category;
+  limit?: number | null;
+  showAllLink?: boolean | null;
+  /**
+   * Bagian tetap tersimpan dan bisa ditampilkan lagi kapan saja.
+   */
+  hideSection?: boolean | null;
+  /**
+   * Bagian diberi latar kertas sedikit lebih gelap selebar layar. Warna diambil dari palet situs sehingga kontras tetap terjaga.
+   */
+  paperBand?: boolean | null;
+  /**
+   * Untuk tautan langsung ke bagian ini, mis. /#cara-pesan. Huruf kecil, angka, dan tanda hubung; diawali huruf.
+   */
+  anchor?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'bookShelf';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeTopicsBlock".
+ */
+export interface HomeTopicsBlock {
+  heading: string;
+  /**
+   * Kosongkan untuk menampilkan semua kategori menurut urutan tampil.
+   */
+  categories?: (number | Category)[] | null;
+  /**
+   * Bagian tetap tersimpan dan bisa ditampilkan lagi kapan saja.
+   */
+  hideSection?: boolean | null;
+  /**
+   * Bagian diberi latar kertas sedikit lebih gelap selebar layar. Warna diambil dari palet situs sehingga kontras tetap terjaga.
+   */
+  paperBand?: boolean | null;
+  /**
+   * Untuk tautan langsung ke bagian ini, mis. /#cara-pesan. Huruf kecil, angka, dan tanda hubung; diawali huruf.
+   */
+  anchor?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'topics';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeOrderStepsBlock".
+ */
+export interface HomeOrderStepsBlock {
+  heading: string;
+  intro?: string | null;
+  steps?:
+    | {
+        title: string;
+        body: string;
+        id?: string | null;
+      }[]
+    | null;
+  note?: string | null;
+  linkLabel?: string | null;
+  /**
+   * Kosongkan bila tanpa tautan. Diawali /, mis. /cara-pesan, atau https://…
+   */
+  linkUrl?: string | null;
+  /**
+   * Bagian tetap tersimpan dan bisa ditampilkan lagi kapan saja.
+   */
+  hideSection?: boolean | null;
+  /**
+   * Bagian diberi latar kertas sedikit lebih gelap selebar layar. Warna diambil dari palet situs sehingga kontras tetap terjaga.
+   */
+  paperBand?: boolean | null;
+  /**
+   * Untuk tautan langsung ke bagian ini, mis. /#cara-pesan. Huruf kecil, angka, dan tanda hubung; diawali huruf.
+   */
+  anchor?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'orderSteps';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeCallToActionBlock".
+ */
+export interface HomeCallToActionBlock {
+  heading: string;
+  /**
+   * Pisahkan paragraf dengan baris kosong.
+   */
+  body: string;
+  buttonLabel: string;
+  /**
+   * Diawali / untuk halaman di situs ini, mis. /institusi, atau alamat lengkap https://…
+   */
+  buttonUrl: string;
+  buttonStyle?: ('outline' | 'solid') | null;
+  /**
+   * Bagian tetap tersimpan dan bisa ditampilkan lagi kapan saja.
+   */
+  hideSection?: boolean | null;
+  /**
+   * Bagian diberi latar kertas sedikit lebih gelap selebar layar. Warna diambil dari palet situs sehingga kontras tetap terjaga.
+   */
+  paperBand?: boolean | null;
+  /**
+   * Untuk tautan langsung ke bagian ini, mis. /#cara-pesan. Huruf kecil, angka, dan tanda hubung; diawali huruf.
+   */
+  anchor?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'callToAction';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeNewsBlock".
+ */
+export interface HomeNewsBlock {
+  heading: string;
+  limit: number;
+  allLinkLabel?: string | null;
+  /**
+   * Bagian tetap tersimpan dan bisa ditampilkan lagi kapan saja.
+   */
+  hideSection?: boolean | null;
+  /**
+   * Bagian diberi latar kertas sedikit lebih gelap selebar layar. Warna diambil dari palet situs sehingga kontras tetap terjaga.
+   */
+  paperBand?: boolean | null;
+  /**
+   * Untuk tautan langsung ke bagian ini, mis. /#cara-pesan. Huruf kecil, angka, dan tanda hubung; diawali huruf.
+   */
+  anchor?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'news';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeTextBlock".
+ */
+export interface HomeTextBlock {
+  heading?: string | null;
+  content: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  };
+  columns?: ('split' | 'single') | null;
+  /**
+   * Bagian tetap tersimpan dan bisa ditampilkan lagi kapan saja.
+   */
+  hideSection?: boolean | null;
+  /**
+   * Bagian diberi latar kertas sedikit lebih gelap selebar layar. Warna diambil dari palet situs sehingga kontras tetap terjaga.
+   */
+  paperBand?: boolean | null;
+  /**
+   * Untuk tautan langsung ke bagian ini, mis. /#cara-pesan. Huruf kecil, angka, dan tanda hubung; diawali huruf.
+   */
+  anchor?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'textSection';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1338,6 +2528,281 @@ export interface SettingsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "appearance_select".
+ */
+export interface AppearanceSelect<T extends boolean = true> {
+  theme?:
+    | T
+    | {
+        preset?: T;
+        customAccent?: T;
+        accentLight?: T;
+        accentDark?: T;
+      };
+  headerNav?:
+    | T
+    | {
+        label?: T;
+        visibility?: T;
+        link?:
+          | T
+          | {
+              type?: T;
+              route?: T;
+              page?: T;
+              url?: T;
+              newTab?: T;
+            };
+        id?: T;
+      };
+  showWhatsAppButton?: T;
+  footerInfoTitle?: T;
+  footerLinks?:
+    | T
+    | {
+        label?: T;
+        link?:
+          | T
+          | {
+              type?: T;
+              route?: T;
+              page?: T;
+              url?: T;
+              newTab?: T;
+            };
+        id?: T;
+      };
+  footerNote?: T;
+  showNewsletter?: T;
+  showSocialLinks?: T;
+  announcement?:
+    | T
+    | {
+        enabled?: T;
+        text?: T;
+        tone?: T;
+        startsAt?: T;
+        endsAt?: T;
+        linkLabel?: T;
+        link?:
+          | T
+          | {
+              type?: T;
+              route?: T;
+              page?: T;
+              url?: T;
+              newTab?: T;
+            };
+      };
+  _status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "homepage_select".
+ */
+export interface HomepageSelect<T extends boolean = true> {
+  layout?:
+    | T
+    | {
+        hero?: T | HomeHeroBlockSelect<T>;
+        latestBooks?: T | HomeLatestBooksBlockSelect<T>;
+        bookShelf?: T | HomeBookShelfBlockSelect<T>;
+        topics?: T | HomeTopicsBlockSelect<T>;
+        orderSteps?: T | HomeOrderStepsBlockSelect<T>;
+        callToAction?: T | HomeCallToActionBlockSelect<T>;
+        news?: T | HomeNewsBlockSelect<T>;
+        textSection?: T | HomeTextBlockSelect<T>;
+      };
+  meta?: T | SeoMetaSelect<T>;
+  _status?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeHeroBlock_select".
+ */
+export interface HomeHeroBlockSelect<T extends boolean = true> {
+  heading?: T;
+  intro?: T;
+  showSearch?: T;
+  searchPlaceholder?: T;
+  spotlightMode?: T;
+  spotlightBook?: T;
+  spotlightLabel?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeLatestBooksBlock_select".
+ */
+export interface HomeLatestBooksBlockSelect<T extends boolean = true> {
+  heading?: T;
+  limit?: T;
+  showAllLink?: T;
+  allLinkLabel?: T;
+  emptyText?: T;
+  hideSection?: T;
+  paperBand?: T;
+  anchor?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeBookShelfBlock_select".
+ */
+export interface HomeBookShelfBlockSelect<T extends boolean = true> {
+  heading?: T;
+  intro?: T;
+  source?: T;
+  books?: T;
+  category?: T;
+  limit?: T;
+  showAllLink?: T;
+  hideSection?: T;
+  paperBand?: T;
+  anchor?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeTopicsBlock_select".
+ */
+export interface HomeTopicsBlockSelect<T extends boolean = true> {
+  heading?: T;
+  categories?: T;
+  hideSection?: T;
+  paperBand?: T;
+  anchor?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeOrderStepsBlock_select".
+ */
+export interface HomeOrderStepsBlockSelect<T extends boolean = true> {
+  heading?: T;
+  intro?: T;
+  steps?:
+    | T
+    | {
+        title?: T;
+        body?: T;
+        id?: T;
+      };
+  note?: T;
+  linkLabel?: T;
+  linkUrl?: T;
+  hideSection?: T;
+  paperBand?: T;
+  anchor?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeCallToActionBlock_select".
+ */
+export interface HomeCallToActionBlockSelect<T extends boolean = true> {
+  heading?: T;
+  body?: T;
+  buttonLabel?: T;
+  buttonUrl?: T;
+  buttonStyle?: T;
+  hideSection?: T;
+  paperBand?: T;
+  anchor?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeNewsBlock_select".
+ */
+export interface HomeNewsBlockSelect<T extends boolean = true> {
+  heading?: T;
+  limit?: T;
+  allLinkLabel?: T;
+  hideSection?: T;
+  paperBand?: T;
+  anchor?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "HomeTextBlock_select".
+ */
+export interface HomeTextBlockSelect<T extends boolean = true> {
+  heading?: T;
+  content?: T;
+  columns?: T;
+  hideSection?: T;
+  paperBand?: T;
+  anchor?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ringkasan-katalog_widget".
+ */
+export interface RingkasanKatalogWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pesan-masuk_widget".
+ */
+export interface PesanMasukWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "pesanan_widget".
+ */
+export interface PesananWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'small' | 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "minat-per-judul_widget".
+ */
+export interface MinatPerJudulWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "rekap-pesanan_widget".
+ */
+export interface RekapPesananWidget {
+  data?: {
+    [k: string]: unknown;
+  };
+  width: 'medium' | 'large' | 'x-large' | 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "collections_widget".
  */
 export interface CollectionsWidget {
@@ -1345,6 +2810,90 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCreateCollectionExport".
+ */
+export interface TaskCreateCollectionExport {
+  input: {
+    id: string;
+    name: string;
+    batchSize?: number | null;
+    collectionSlug:
+      | 'books'
+      | 'authors'
+      | 'categories'
+      | 'series'
+      | 'media'
+      | 'pages'
+      | 'posts'
+      | 'inquiries'
+      | 'orders'
+      | 'private-files'
+      | 'order-clicks'
+      | 'audit-logs'
+      | 'subscribers'
+      | 'users'
+      | 'redirects'
+      | 'forms'
+      | 'form-submissions'
+      | 'exports'
+      | 'imports';
+    drafts?: ('yes' | 'no') | null;
+    exportCollection: string;
+    fields?: string[] | null;
+    format: 'csv' | 'json';
+    limit?: number | null;
+    locale?: string | null;
+    maxLimit?: number | null;
+    page?: number | null;
+    sort?: string | null;
+    userCollection?: string | null;
+    userID?: string | null;
+    where?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskCreateCollectionImport".
+ */
+export interface TaskCreateCollectionImport {
+  input: {
+    importId: string;
+    importCollection: string;
+    userID?: string | null;
+    userCollection?: string | null;
+    batchSize?: number | null;
+    debug?: boolean | null;
+    defaultVersionStatus?: ('draft' | 'published') | null;
+    maxLimit?: number | null;
+  };
+  output?: unknown;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FormulirBlock".
+ */
+export interface FormulirBlock {
+  /**
+   * Buat atau ubah isi formulir di menu Konten → Formulir.
+   */
+  form: number | Form;
+  heading?: string | null;
+  intro?: string | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'formulir';
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

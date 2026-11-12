@@ -130,11 +130,26 @@ cek "/api/users ditutup di apex"                       404 GET  "$PUB" /api/user
 cek "/api/globals/settings ditutup di apex"            404 GET  "$PUB" /api/globals/settings
 cek "/api/private-files ditutup di apex"               404 GET  "$PUB" /api/private-files/file/x.png
 cek "/internal/access-check ditutup di apex"           404 GET  "$PUB" /internal/access-check
+cek "/pratinjau ditutup di apex"                       404 GET  "$PUB" /pratinjau
+cek "/pratinjau/mulai ditutup di apex"                 404 GET  "$PUB" /pratinjau/mulai
+# Aplikasi juga menjawab 404, jadi kode saja tidak membuktikan aturan toko-proxy. Halaman 404
+# bawaan nginx (template tanpa error_page 404) hanya bisa datang dari proxy; pola cocok
+# dengan atau tanpa server_tokens (<center>nginx/x.y</center> atau <center>nginx</center>).
+isi "/pratinjau diblokir proxy (bukan app)"            '<center>nginx'                "$PUB" /pratinjau
+isi "/pratinjau/mulai diblokir proxy (bukan app)"      '<center>nginx'                "$PUB" /pratinjau/mulai
+cek "/api/laporan ditutup di apex"                     404 GET  "$PUB" /api/laporan/minat-per-judul
+cek "/api/redirects ditutup di apex"                   404 GET  "$PUB" /api/redirects
+cek "/api/form-submissions ditutup di apex"            404 POST "$PUB" /api/form-submissions
+cek "favicon admin"                                    200 GET  "$PUB" /brand/ypi-mark.svg
+cek "templat impor"                                    200 GET  "$PUB" /templat/impor-buku.csv
 cek "sampul publik GET"                                200 GET  "$PUB" "/api/media/file/$COVER"
 cek "sampul publik HEAD"                               200 HEAD "$PUB" "/api/media/file/$COVER"
 cek "sampul publik POST ditolak"                       403 POST "$PUB" "/api/media/file/$COVER"
 cek "/klik mencatat klik order"                        204 POST "$PUB" /klik -H 'Content-Type: application/json' --data "{\"b\":$BOOK_ID,\"t\":\"wa\",\"path\":\"/buku/x\"}"
 isi "beranda memuat nama penerbit"                     "Penerbit"                     "$PUB" /
+# Slug yang hanya diawali kata "pratinjau" bukan alamat sistem: harus sampai ke aplikasi
+# (halaman 404 aplikasi), bukan diblokir proxy (404 bawaan nginx).
+isi "/pratinjau-x sampai ke aplikasi"                  "Halaman tidak ditemukan"      "$PUB" /pratinjau-x
 isi "detail buku memuat JSON-LD Book"                  '"@type":\["Book","Product"\]' "$PUB" /buku/membaca-suara-pemilih
 isi "canonical memakai SITE_URL runtime"               "https://$PUB/buku/membaca-suara-pemilih" "$PUB" /buku/membaca-suara-pemilih
 isi "non-produksi: meta noindex"                       'name="robots" content="noindex' "$PUB" /
@@ -148,6 +163,7 @@ echo "== Host admin ($ADM) — CF_ACCESS kosong: harus gagal tertutup"
 cek "/ dialihkan ke /admin"                            302 GET "$ADM" /
 cek "/admin tanpa JWT"                                 401 GET "$ADM" /admin
 cek "/api/users tanpa JWT"                             401 GET "$ADM" /api/users
+cek "/api/laporan tanpa JWT"                           401 GET "$ADM" /api/laporan/pesanan-per-judul
 cek "/admin dengan JWT palsu"                          401 GET "$ADM" /admin -H 'Cf-Access-Jwt-Assertion: eyJhbGciOiJub25lIn0.e30.'
 cek "/internal/ tetap 404 di host admin"               404 GET "$ADM" /internal/access-check
 cek "/nginx-health host admin"                         200 GET "$ADM" /nginx-health

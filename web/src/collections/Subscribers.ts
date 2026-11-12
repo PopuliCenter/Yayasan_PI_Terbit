@@ -17,6 +17,7 @@ export const Subscribers: CollectionConfig = {
     description:
       "Daftar email yang menyetujui menerima kabar terbitan. Pencabutan persetujuan dicatat, bukan dihapus diam-diam.",
   },
+  defaultSort: "-consentAt",
   access: {
     read: isAdmin,
     create: () => false,

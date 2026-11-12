@@ -66,6 +66,11 @@ server {
     location = /admin      { return 404; }
     location ^~ /admin/    { return 404; }
     location ^~ /internal/ { return 404; }
+    # Pratinjau draf hanya di host admin (lapisan kedua; aplikasi juga menolak).
+    # Pola sama dengan /admin: exact + awalan bergaris miring, agar slug halaman seperti
+    # /pratinjau-katalog-2027 tetap sampai ke aplikasi (sesuai RESERVED di src/lib/urls.ts).
+    location = /pratinjau   { return 404; }
+    location ^~ /pratinjau/ { return 404; }
 
     # Pengecualian: berkas sampul publik (koleksi media, read: anyone).
     location ^~ /api/media/file/ {

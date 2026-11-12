@@ -23,6 +23,7 @@ export const Orders: CollectionConfig = {
       "Catatan pesanan yang masuk lewat WhatsApp atau marketplace. Isi paling lambat pada hari pesanan dibayar.",
     listSearchableFields: ["orderNumber", "customerName", "customerContact", "trackingNumber"],
   },
+  defaultSort: "-orderDate",
   access: {
     read: isOrder,
     create: isOrder,
@@ -85,6 +86,7 @@ export const Orders: CollectionConfig = {
           label: "Tanggal pesanan",
           required: true,
           defaultValue: () => new Date().toISOString(),
+          admin: { date: { displayFormat: "d MMM yyyy" } },
         },
         {
           name: "channel",
@@ -209,13 +211,21 @@ export const Orders: CollectionConfig = {
           name: "itemsTotal",
           type: "number",
           label: "Subtotal barang (Rp)",
-          admin: { readOnly: true, description: "Dihitung otomatis." },
+          admin: {
+            readOnly: true,
+            description: "Dihitung otomatis.",
+            components: { Cell: "@/components/admin/cells/RupiahCell#RupiahCell" },
+          },
         },
         {
           name: "total",
           type: "number",
           label: "Total (Rp)",
-          admin: { readOnly: true, description: "Subtotal + ongkir − potongan." },
+          admin: {
+            readOnly: true,
+            description: "Subtotal + ongkir − potongan.",
+            components: { Cell: "@/components/admin/cells/RupiahCell#RupiahCell" },
+          },
         },
       ],
     },

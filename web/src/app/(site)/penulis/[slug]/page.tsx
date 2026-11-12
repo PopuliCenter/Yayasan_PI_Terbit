@@ -1,34 +1,46 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { BookGrid } from "@/components/BookCard";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { CoverImage } from "@/components/CoverImage";
 import { JsonLd } from "@/components/JsonLd";
 import { RichTextContent } from "@/components/RichTextContent";
 import type { Media } from "@/payload-types";
-import { getAuthorBySlug, getBooksByAuthor } from "@/lib/data";
+import { getAuthorBySlug, getBooksByAuthor, getSettings } from "@/lib/data";
+import { redirectOrNotFound } from "@/lib/redirects";
 import { hasRichText, lexicalToPlainText } from "@/lib/richtext";
+import { asMedia, ogBase, ogImageFrom } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/site";
 
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const author = await getAuthorBySlug(slug);
+  const [author, s] = await Promise.all([getAuthorBySlug(slug), getSettings()]);
   if (!author) return { title: "Penulis tidak ditemukan" };
+  const description =
+    author.shortBio || lexicalToPlainText(author.bio, 158) || `Buku karya ${author.name} terbitan ${s.publisherName}.`;
+  // openGraph halaman menggantikan seluruh openGraph layout (penggabungan dangkal), jadi
+  // gambar bagikan diisi di sini: foto penulis (ukuran og) → gambar bawaan situs.
+  const image = ogImageFrom(asMedia(author.photo), author.name) ?? s.ogImage;
   return {
     title: author.name,
-    description:
-      author.shortBio || lexicalToPlainText(author.bio, 158) || `Buku karya ${author.name} terbitan Yayasan Populi Indonesia.`,
+    description,
     alternates: { canonical: `/penulis/${author.slug}` },
-    openGraph: { type: "profile", title: author.name },
+    openGraph: {
+      ...ogBase(s),
+      type: "profile",
+      title: author.name,
+      description,
+      url: `/penulis/${author.slug}`,
+      images: image ? [image] : undefined,
+    },
   };
 }
 
 export default async function AuthorPage({ params }: Props) {
   const { slug } = await params;
   const author = await getAuthorBySlug(slug);
-  if (!author) notFound();
+  if (!author) return redirectOrNotFound(`/penulis/${slug}`);
 
   const books = await getBooksByAuthor(author.id);
   const photo = author.photo && typeof author.photo === "object" ? (author.photo as Media) : null;

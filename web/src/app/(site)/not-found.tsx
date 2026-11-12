@@ -1,7 +1,11 @@
 import Link from "next/link";
+import { getHomeHref, PREVIEW_HOME } from "@/lib/preview";
 
 /** Status 404 asli (NFR SEO), dengan jalan keluar yang berguna. */
-export default function NotFound() {
+export default async function NotFound() {
+  // Di pratinjau, "beranda" = /pratinjau/beranda: "/" di host admin dialihkan ke /admin.
+  const homeHref = await getHomeHref();
+  const preview = homeHref === PREVIEW_HOME;
   return (
     <div className="page-container py-24 text-center">
       <p className="eyebrow">Galat 404</p>
@@ -18,8 +22,13 @@ export default function NotFound() {
           Cari
         </button>
       </form>
+      {preview ? (
+        <p className="mx-auto mt-6 max-w-lg text-sm text-muted">
+          Bila slug baru saja diubah, pratinjau dimuat ulang otomatis.
+        </p>
+      ) : null}
       <p className="mt-6">
-        <Link href="/" className="link">
+        <Link href={homeHref} className="link">
           Kembali ke beranda
         </Link>
       </p>

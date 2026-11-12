@@ -4,7 +4,11 @@ import { anyone, isAdmin, isKatalog } from "../access";
 export const Media: CollectionConfig = {
   slug: "media",
   labels: { singular: "Berkas", plural: "Berkas" },
-  admin: { group: "Katalog", useAsTitle: "alt" },
+  admin: {
+    group: "Katalog",
+    useAsTitle: "alt",
+    defaultColumns: ["filename", "alt", "credit", "updatedAt"],
+  },
   access: {
     read: anyone,
     create: isAdmin,

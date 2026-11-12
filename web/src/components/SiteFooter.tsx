@@ -1,17 +1,25 @@
 import Link from "next/link";
+import { DEFAULT_FOOTER, type ResolvedAppearance } from "@/lib/appearance/resolve";
 import type { PublicSettings } from "@/lib/data";
 import { MARKETPLACE_LABEL } from "@/lib/format";
 import { waUrl } from "@/lib/wa";
 import { NewsletterForm } from "./forms/NewsletterForm";
 import { Logo } from "./Logo";
+import { NavLink } from "./NavLink";
 
 type Props = {
   settings: PublicSettings;
   footerPages: { id: number; title: string; slug: string }[];
+  /**
+   * Bagian footer yang diatur di global Tampilan: judul kolom tautan, tautan tambahan,
+   * catatan kaki, dan sakelar kabar terbitan/media sosial. Bawaan = footer sebelum fitur ini.
+   * Identitas penerbit, "Layanan pembaca", dan "Kontak & pengaduan" tetap dari Pengaturan Situs.
+   */
+  footer?: ResolvedAppearance["footer"];
   formIssuedAt: string;
 };
 
-export function SiteFooter({ settings, footerPages, formIssuedAt }: Props) {
+export function SiteFooter({ settings, footerPages, footer = DEFAULT_FOOTER, formIssuedAt }: Props) {
   const seller = settings.sellerEntityName || settings.publisherName;
   const year = new Date().getFullYear();
 
@@ -106,7 +114,7 @@ export function SiteFooter({ settings, footerPages, formIssuedAt }: Props) {
 
         <nav className="lg:col-span-2" aria-labelledby="footer-info">
           <h2 id="footer-info" className="font-sans text-sm font-semibold text-ink">
-            Informasi
+            {footer.infoTitle}
           </h2>
           <ul className="mt-4 space-y-2 text-sm">
             {footerPages.map((p) => (
@@ -116,25 +124,29 @@ export function SiteFooter({ settings, footerPages, formIssuedAt }: Props) {
                 </Link>
               </li>
             ))}
-            <li>
-              <Link href="/institusi" className="hover:text-ink hover:underline">
-                Pembelian institusi
-              </Link>
-            </li>
+            {footer.links.map((l) => (
+              <li key={`${l.href}-${l.label}`}>
+                <NavLink link={l} className="hover:text-ink hover:underline">
+                  {l.label}
+                </NavLink>
+              </li>
+            ))}
           </ul>
         </nav>
 
-        <section className="lg:col-span-3" aria-labelledby="footer-kabar">
-          <h2 id="footer-kabar" className="font-sans text-sm font-semibold text-ink">
-            Kabar terbitan baru
-          </h2>
-          <p className="mt-3 text-sm">Satu email saat ada buku baru. Tanpa promosi berlebihan.</p>
-          <NewsletterForm
-            consentText={settings.consentText}
-            consentVersion={settings.consentVersion}
-            issuedAt={formIssuedAt}
-          />
-        </section>
+        {footer.showNewsletter ? (
+          <section className="lg:col-span-3" aria-labelledby="footer-kabar">
+            <h2 id="footer-kabar" className="font-sans text-sm font-semibold text-ink">
+              Kabar terbitan baru
+            </h2>
+            <p className="mt-3 text-sm">Satu email saat ada buku baru. Tanpa promosi berlebihan.</p>
+            <NewsletterForm
+              consentText={settings.consentText}
+              consentVersion={settings.consentVersion}
+              issuedAt={formIssuedAt}
+            />
+          </section>
+        ) : null}
       </div>
 
       <div className="border-t border-line">
@@ -143,7 +155,9 @@ export function SiteFooter({ settings, footerPages, formIssuedAt }: Props) {
             © {year} {seller || settings.siteName}. Hak cipta dilindungi undang-undang.
           </p>
           {settings.registeredInfo ? <p className="whitespace-pre-line">{settings.registeredInfo}</p> : null}
-          {settings.socialLinks.length > 0 ? (
+          {/* Catatan kaki dari global Tampilan: teks biasa (React meng-escape), baris baru dipertahankan. */}
+          {footer.note ? <p className="whitespace-pre-line">{footer.note}</p> : null}
+          {footer.showSocialLinks && settings.socialLinks.length > 0 ? (
             <ul className="flex gap-4">
               {settings.socialLinks.map((s) => (
                 <li key={s.url}>

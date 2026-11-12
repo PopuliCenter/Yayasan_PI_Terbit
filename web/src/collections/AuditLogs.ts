@@ -15,6 +15,7 @@ export const AuditLogs: CollectionConfig = {
     description: "Catatan siapa mengubah apa dan kapan. Tidak bisa diubah.",
     listSearchableFields: ["summary", "collectionSlug", "documentTitle", "documentId"],
   },
+  defaultSort: "-createdAt",
   access: {
     read: isAdmin,
     create: () => false,

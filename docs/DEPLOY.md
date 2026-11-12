@@ -315,6 +315,21 @@ Rollback image (migrasi kompatibel): panduan §9.4 apa adanya. Rollback melewati
 
 Migrasi baru dibuat di laptop dengan Postgres lokal (contoh di `web/README.md`), di-commit di `web/src/migrations/`, dan diuji CI (job e2e menerapkannya ke DB kosong).
 
+### 9a. Rilis penyuntingan situs (satu migrasi gabungan)
+
+Rilis yang memasang Tampilan Situs, Beranda, Pratinjau, SEO, Pengalihan URL, Impor/Ekspor, dan Formulir membawa **satu** migrasi gabungan. Isinya:
+
+- tabel baru `appearance`, `homepage`, `redirects`, `forms`, `form_submissions`, `imports`, `exports`, `payload_jobs` (beserta tabel turunan dan versinya);
+- kolom `meta_*` (SEO) di koleksi yang punya tab SEO;
+- kolom autosave di `_pages_v` dan `_posts_v`.
+
+Urutan: staging dulu, lalu produksi dengan SHA yang sama, lewat alur §9 apa adanya. Alur itu sudah menjalankan `scripts/backup.sh` **sebelum** service `migrate`, dan `migrate` **sebelum** `app` di-recreate. Jangan membalik urutannya: app baru membaca tabel yang belum ada sampai migrasi selesai. Cek setelahnya: `docker compose run --rm migrate npx --no-install payload migrate:status | tail -n 4` (semua `Yes`).
+
+- **Env baru:** `IMPORTS_DIR` dan `EXPORTS_DIR`. Nilai bawaannya ada di Dockerfile (`/app/files/imports`, `/app/files/exports`), di dalam volume `FILES_VOLUME`, jadi ikut backup. `.env` tidak perlu diubah. Pada volume lama, Payload membuat foldernya sendiri saat unggahan pertama.
+- **Tanpa worker atau cron baru.** Impor/ekspor berjalan sinkron di dalam permintaan admin. Plugin impor/ekspor tetap mengaktifkan koleksi `payload-jobs` (tersembunyi, akses hanya super admin), tetapi tidak ada `autoRun`. Penghapusan kiriman formulir yang lewat masa simpan berjalan di dalam app, paling sering sekali per 6 jam per proses. Pemicunya health check: healthcheck Docker memanggil `/healthz` tiap 30 dtk, dan app menjadwalkan penghapusan setelah respons terkirim (`after()`), jadi waktu jawab dan status health check tidak terpengaruh. Kiriman baru dan daftar Kiriman Formulir di admin ikut memicunya. Hasilnya, kiriman terhapus paling lambat sekitar 6 jam setelah `expiresAt`, walau formulirnya sudah ditutup dan tidak ada admin yang membuka daftar. Jalur manual (mis. saat audit): `docker compose run --rm migrate npx --no-install payload run ./src/scripts/purge-form-submissions.ts`.
+- **Pratinjau (live preview)** hanya bekerja di `admin.` dan `staging-admin.` (iframe same-origin di balik Access) dan tidak butuh env baru. Di apex, toko-proxy membalas 404 untuk `/pratinjau` dan `/pratinjau/*` (bukan semua alamat berawalan kata itu, jadi slug halaman seperti `/pratinjau-katalog` tetap tayang); aplikasi juga menolaknya.
+- **Smoke test** (`scripts/smoke.sh`) kini juga memeriksa: `/pratinjau` dan `/pratinjau/mulai` = 404 dari toko-proxy di apex (isi halaman harus 404 bawaan nginx, bukan 404 aplikasi, sehingga aturan proxy yang hilang membuat smoke gagal); `/api/laporan/*`, `/api/redirects`, dan `POST /api/form-submissions` = 404 di apex; `/brand/ypi-mark.svg` dan `/templat/impor-buku.csv` = 200; `/pratinjau-x` sampai ke aplikasi (halaman 404 aplikasi, bukan 404 proxy); `/api/laporan/*` tanpa JWT = 401 di host admin.
+
 ---
 
 ## 10. Backup (panduan §11, disesuaikan)
@@ -364,7 +379,7 @@ docker logs --since 10m "$EDGE" 2>&1 | grep "host=$D" | redaksi | tail -n 20
 Ganti/abaikan butir berikut; butir lain berlaku apa adanya.
 
 - ~~Login kredensial bawaan Vendure gagal; `SUPERADMIN_PASSWORD` dirotasi~~ → **Pengguna admin pertama sudah dibuat di staging dan produksi segera setelah gerbang Access terbukti** (§8.3).
-- `/admin-api` di apex = 404 → **`/admin`, `/api/users`, `/api/globals/settings` di apex = 404**.
+- `/admin-api` di apex = 404 → **`/admin`, `/api/users`, `/api/globals/settings`, `/api/laporan/*`, `/pratinjau/*` di apex = 404**.
 - Dari laptop di luar Cloudflare `--resolve admin.<DOMAIN_TOKO>:443:<IP_VPS> .../admin` = 403.
 - ~~Webhook Midtrans/Biteship~~, ~~token webhook tersamar~~ → **`?token=` tersamar di log edge dan toko-proxy**.
 - ~~Redis noeviction/TTL~~ — tidak ada Redis.

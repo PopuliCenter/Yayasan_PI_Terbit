@@ -1,24 +1,22 @@
 /* Rute panel admin Payload. Mengikuti struktur bawaan Payload 3; jangan menambahkan konten situs di sini. */
 import config from "@payload-config";
 import "@payloadcms/next/css";
+import "./custom.css";
 import type { ServerFunctionClient } from "payload";
 import { handleServerFunctions, RootLayout } from "@payloadcms/next/layouts";
+import { Inter, Source_Serif_4 } from "next/font/google";
 import { headers } from "next/headers";
 import React from "react";
-import { accessConfigFromEnv, verifyAccessJwt } from "@/lib/cf-access";
+import { isAdminRequest } from "@/lib/admin-host";
 import { importMap } from "./admin/importMap.js";
 
 type Args = {
   children: React.ReactNode;
 };
 
-const adminHost = (): string | null => {
-  try {
-    return new URL(process.env.ADMIN_BASE_URL ?? "").host.toLowerCase();
-  } catch {
-    return null;
-  }
-};
+// Huruf yang sama dengan situs (di-host sendiri oleh next/font), dipetakan ke --font-body/--font-serif di custom.css.
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+const serif = Source_Serif_4({ subsets: ["latin"], variable: "--font-source-serif", display: "swap" });
 
 /**
  * Server function admin Payload (dipakai panel untuk form state, render field, dsb.).
@@ -27,18 +25,12 @@ const adminHost = (): string | null => {
  * dan host. Next.js bisa meneruskan POST Server Action yang membawa ID milik halaman lain
  * lewat fetch internal yang TIDAK melewati toko-proxy. Karena itu di produksi fungsi ini
  * memverifikasi ulang sendiri, gagal tertutup: host harus host admin DAN JWT Cloudflare
- * Access harus sah.
+ * Access harus sah (lib/admin-host.ts, dipakai bersama endpoint laporan dan pratinjau).
  */
 const serverFunction: ServerFunctionClient = async function (args) {
   "use server";
-  if (process.env.NODE_ENV === "production") {
-    const h = await headers();
-    const host = (h.get("x-forwarded-host") ?? h.get("host") ?? "").toLowerCase();
-    const expected = adminHost();
-    const access = await verifyAccessJwt(h.get("cf-access-jwt-assertion"), accessConfigFromEnv());
-    if (!expected || host !== expected || !access.ok) {
-      throw new Error("Tidak diizinkan");
-    }
+  if (!(await isAdminRequest(await headers()))) {
+    throw new Error("Tidak diizinkan");
   }
   return handleServerFunctions({
     ...args,
@@ -48,7 +40,12 @@ const serverFunction: ServerFunctionClient = async function (args) {
 };
 
 const Layout = ({ children }: Args) => (
-  <RootLayout config={config} importMap={importMap} serverFunction={serverFunction}>
+  <RootLayout
+    config={config}
+    importMap={importMap}
+    serverFunction={serverFunction}
+    htmlProps={{ className: `${inter.variable} ${serif.variable}` }}
+  >
     {children}
   </RootLayout>
 );

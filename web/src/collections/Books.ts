@@ -1,6 +1,20 @@
 import type { CollectionConfig } from "payload";
 import { fieldIsAdmin, fieldIsKatalog, isKatalog, isOrder, publishedOrAdmin } from "../access";
+import { seoMetaGroup } from "../fields/seo";
 import { slugField } from "../fields/slug";
+import { rejectImportIssues } from "../hooks/rejectImportIssues";
+import {
+  asText,
+  dateId,
+  decimalId,
+  exportFilename,
+  exportSlugs,
+  richText,
+  rupiah,
+  selectByLabel,
+  yaTidak,
+} from "../lib/import/parse";
+import { previewPath } from "../lib/preview-url";
 
 /**
  * Validasi ISBN-13 lengkap, termasuk angka pemeriksa. Salah ketik satu angka atau
@@ -31,12 +45,29 @@ export const Books: CollectionConfig = {
   labels: { singular: "Buku", plural: "Buku" },
   admin: {
     useAsTitle: "title",
-    defaultColumns: ["title", "availability", "price", "publishedAt", "_status"],
+    defaultColumns: ["cover", "title", "authors", "price", "availability", "_status", "updatedAt"],
     group: "Katalog",
     description:
-      "Satu entri per judul. Berat dan dimensi dipakai admin untuk menghitung ongkir manual, dan akan dipakai otomatis bila toko penuh dibuka.",
+      "Satu entri per judul. Berat dan dimensi dipakai admin untuk menghitung ongkir manual, dan akan dipakai otomatis bila toko penuh dibuka. Impor/ekspor CSV lewat menu ⋯ di daftar buku; templat di /templat/impor-buku.csv.",
     listSearchableFields: ["title", "subtitle", "isbn13"],
+    // Tombol Pratinjau membuka draf di tab baru lewat /pratinjau/mulai (tanpa token di URL).
+    preview: (doc) =>
+      previewPath({
+        collection: "books",
+        id: typeof doc.id === "number" || typeof doc.id === "string" ? doc.id : null,
+        slug: typeof doc.slug === "string" ? doc.slug : null,
+      }),
+    components: {
+      edit: {
+        beforeDocumentControls: [
+          { path: "@/components/admin/LihatDiSitus#LihatDiSitus", serverProps: { collection: "books" } },
+        ],
+      },
+    },
   },
+  defaultSort: "-updatedAt",
+  // TANPA autosave: admin order menyimpan perubahan ketersediaan, dan autosave akan ikut
+  // menayangkan draf katalog yang sedang menunggu tinjauan.
   versions: { drafts: true },
   access: {
     read: publishedOrAdmin,
@@ -45,6 +76,9 @@ export const Books: CollectionConfig = {
     // tetap dikunci lewat access per field di bawah.
     update: ({ req }) => isKatalog({ req }) || isOrder({ req }),
     delete: isKatalog,
+  },
+  hooks: {
+    beforeValidate: [rejectImportIssues],
   },
   fields: [
     {
@@ -75,6 +109,7 @@ export const Books: CollectionConfig = {
               label: "Penulis",
               required: true,
               access: { update: fieldIsKatalog },
+              custom: { "plugin-import-export": { hooks: { beforeExport: exportSlugs } } },
             },
             {
               type: "row",
@@ -90,6 +125,7 @@ export const Books: CollectionConfig = {
                   admin: {
                     description: "Boleh dengan atau tanpa tanda hubung. Pencarian menemukan keduanya.",
                   },
+                  custom: { "plugin-import-export": { hooks: { beforeImport: asText } } },
                 },
                 {
                   name: "publishedYear",
@@ -122,6 +158,11 @@ export const Books: CollectionConfig = {
                     { label: "Inggris", value: "en" },
                     { label: "Lainnya", value: "other" },
                   ],
+                  custom: {
+                    "plugin-import-export": {
+                      hooks: { beforeImport: selectByLabel({ indonesia: "id", inggris: "en", lainnya: "other" }) },
+                    },
+                  },
                 },
                 {
                   name: "edition",
@@ -147,18 +188,21 @@ export const Books: CollectionConfig = {
                       type: "number",
                       label: "Lebar (cm)",
                       access: { update: fieldIsKatalog },
+                      custom: { "plugin-import-export": { hooks: { beforeImport: decimalId } } },
                     },
                     {
                       name: "heightCm",
                       type: "number",
                       label: "Tinggi (cm)",
                       access: { update: fieldIsKatalog },
+                      custom: { "plugin-import-export": { hooks: { beforeImport: decimalId } } },
                     },
                     {
                       name: "thicknessCm",
                       type: "number",
                       label: "Ketebalan (cm)",
                       access: { update: fieldIsKatalog },
+                      custom: { "plugin-import-export": { hooks: { beforeImport: decimalId } } },
                     },
                     {
                       name: "weightGram",
@@ -179,6 +223,7 @@ export const Books: CollectionConfig = {
               label: "Kategori",
               access: { update: fieldIsKatalog },
               admin: { description: "Satu buku boleh masuk beberapa kategori." },
+              custom: { "plugin-import-export": { hooks: { beforeExport: exportSlugs } } },
             },
             {
               type: "row",
@@ -189,6 +234,7 @@ export const Books: CollectionConfig = {
                   relationTo: "series",
                   label: "Seri",
                   access: { update: fieldIsKatalog },
+                  custom: { "plugin-import-export": { hooks: { beforeExport: exportSlugs } } },
                 },
                 {
                   name: "seriesOrder",
@@ -221,7 +267,9 @@ export const Books: CollectionConfig = {
                   access: { update: fieldIsKatalog },
                   admin: {
                     description: "Harga penerbit. Harga di marketplace bisa berbeda.",
+                    components: { Cell: "@/components/admin/cells/RupiahCell#RupiahCell" },
                   },
+                  custom: { "plugin-import-export": { hooks: { beforeImport: rupiah } } },
                 },
                 {
                   name: "listPrice",
@@ -232,7 +280,9 @@ export const Books: CollectionConfig = {
                   admin: {
                     description:
                       "Isi HANYA bila harga ini benar pernah berlaku. Harga coret yang tidak pernah berlaku menyesatkan dan dilarang UU 8/1999.",
+                    components: { Cell: "@/components/admin/cells/RupiahCell#RupiahCell" },
                   },
+                  custom: { "plugin-import-export": { hooks: { beforeImport: rupiah } } },
                 },
               ],
             },
@@ -244,7 +294,11 @@ export const Books: CollectionConfig = {
                   type: "date",
                   label: "Diskon mulai",
                   access: { update: fieldIsKatalog },
-                  admin: { condition: (data) => Boolean(data?.listPrice) },
+                  admin: {
+                    condition: (data) => Boolean(data?.listPrice),
+                    date: { displayFormat: "d MMMM yyyy" },
+                  },
+                  custom: { "plugin-import-export": { hooks: { beforeImport: dateId } } },
                 },
                 {
                   name: "discountEnd",
@@ -254,7 +308,9 @@ export const Books: CollectionConfig = {
                   admin: {
                     condition: (data) => Boolean(data?.listPrice),
                     description: "Setelah tanggal ini, harga coret berhenti tampil otomatis.",
+                    date: { displayFormat: "d MMMM yyyy" },
                   },
+                  custom: { "plugin-import-export": { hooks: { beforeImport: dateId } } },
                 },
               ],
             },
@@ -276,6 +332,18 @@ export const Books: CollectionConfig = {
                 description:
                   "Tanpa angka stok, sesuai keputusan no. 8. Admin order boleh mengubah ini.",
               },
+              custom: {
+                "plugin-import-export": {
+                  hooks: {
+                    beforeImport: selectByLabel({
+                      "stok terbatas": "terbatas",
+                      "segera terbit": "segera",
+                      tersedia: "tersedia",
+                      habis: "habis",
+                    }),
+                  },
+                },
+              },
             },
           ],
         },
@@ -289,18 +357,21 @@ export const Books: CollectionConfig = {
               label: "Sampul",
               required: true,
               access: { update: fieldIsKatalog },
+              custom: { "plugin-import-export": { hooks: { beforeExport: exportFilename } } },
             },
             {
               name: "synopsis",
               type: "richText",
               label: "Sinopsis",
               access: { update: fieldIsKatalog },
+              custom: { "plugin-import-export": { hooks: { beforeImport: richText } } },
             },
             {
               name: "tableOfContents",
               type: "richText",
               label: "Daftar isi",
               access: { update: fieldIsKatalog },
+              custom: { "plugin-import-export": { hooks: { beforeImport: richText } } },
             },
             {
               name: "previewPages",
@@ -312,6 +383,8 @@ export const Books: CollectionConfig = {
                 description:
                   "Gambar halaman, bukan berkas utuh (keputusan no. 7). Jumlah halaman yang boleh dipratinjau ditentukan Yayasan.",
               },
+              // Gambar halaman tidak ikut impor/ekspor CSV.
+              custom: { "plugin-import-export": { disabled: true } },
               fields: [
                 {
                   name: "image",
@@ -332,6 +405,7 @@ export const Books: CollectionConfig = {
               type: "checkbox",
               label: "Tampilkan tombol pesan via WhatsApp",
               defaultValue: true,
+              custom: { "plugin-import-export": { hooks: { beforeImport: yaTidak } } },
             },
             {
               name: "marketplaceLinks",
@@ -392,30 +466,13 @@ export const Books: CollectionConfig = {
         },
         {
           label: "SEO",
-          fields: [
-            {
-              name: "metaTitle",
-              type: "text",
-              label: "Judul untuk mesin pencari",
-              access: { update: fieldIsKatalog },
-              admin: { description: "Kosongkan untuk memakai judul buku. Ideal di bawah 60 karakter." },
-            },
-            {
-              name: "metaDescription",
-              type: "textarea",
-              label: "Deskripsi untuk mesin pencari",
-              maxLength: 320,
-              access: { update: fieldIsKatalog },
-              admin: {
-                description:
-                  "Satu sampai dua kalimat, 120–160 karakter. Kosongkan untuk memakai awal sinopsis.",
-              },
-            },
-          ],
+          // Kolom DB meta_title/meta_description dipakai ulang dari metaTitle/metaDescription lama.
+          fields: [seoMetaGroup({ create: fieldIsKatalog, update: fieldIsKatalog })],
         },
       ],
     },
-    slugField(),
+    // Admin order boleh menyimpan buku (ketersediaan), tetapi tidak boleh mengubah alamatnya.
+    slugField("title", { access: { update: fieldIsKatalog } }),
     {
       name: "publishedAt",
       type: "date",
@@ -425,6 +482,7 @@ export const Books: CollectionConfig = {
       admin: {
         position: "sidebar",
         description: "Dipakai untuk urutan Terbaru.",
+        date: { displayFormat: "d MMMM yyyy" },
       },
       hooks: {
         beforeChange: [
@@ -441,7 +499,11 @@ export const Books: CollectionConfig = {
       label: "Tampilkan di halaman depan",
       defaultValue: false,
       access: { update: fieldIsKatalog },
-      admin: { position: "sidebar" },
+      admin: {
+        position: "sidebar",
+        description: "Dipakai Sorotan otomatis dan Pilihan buku (sumber: unggulan) di Beranda.",
+      },
+      custom: { "plugin-import-export": { hooks: { beforeImport: yaTidak } } },
     },
     {
       name: "internalNotes",

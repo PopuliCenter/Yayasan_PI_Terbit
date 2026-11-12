@@ -1,5 +1,6 @@
 import type { GlobalConfig } from "payload";
 import { isAdmin, isSuperAdmin } from "../access";
+import { auditGlobalAfterChange } from "../hooks/audit";
 
 /**
  * Identitas penyelenggara, kontak layanan, dan teks wajib (bagian 10 PRD).
@@ -11,11 +12,12 @@ import { isAdmin, isSuperAdmin } from "../access";
 export const Settings: GlobalConfig = {
   slug: "settings",
   label: "Pengaturan Situs",
-  admin: { group: "Pengaturan" },
+  admin: { group: "Pengaturan", hideAPIURL: true },
   access: {
     read: isAdmin,
     update: isSuperAdmin,
   },
+  hooks: { afterChange: [auditGlobalAfterChange] },
   fields: [
     {
       type: "tabs",
@@ -280,12 +282,16 @@ export const Settings: GlobalConfig = {
               type: "textarea",
               label: "Deskripsi bawaan untuk mesin pencari",
               maxLength: 320,
+              admin: { description: "Dipakai di halaman yang tidak punya deskripsi SEO sendiri." },
             },
             {
               name: "ogImage",
               type: "upload",
               relationTo: "media",
               label: "Gambar bagikan bawaan",
+              admin: {
+                description: "Gambar bagikan bawaan untuk halaman tanpa gambar sendiri. Ideal 1200×630.",
+              },
             },
           ],
         },

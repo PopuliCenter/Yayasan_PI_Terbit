@@ -1,4 +1,5 @@
-import type { Field, FieldHook } from "payload";
+import type { Field, FieldHook, TextField } from "payload";
+import { asText } from "../lib/import/parse";
 
 export const slugify = (value: string): string =>
   value
@@ -22,19 +23,27 @@ const formatSlug =
     return value;
   };
 
-export const slugField = (sourceField = "title"): Field => ({
+export type SlugFieldOptions = {
+  /** Akses per field, mis. `{ update: fieldIsKatalog }` agar admin order tidak bisa mengubah alamat. */
+  access?: TextField["access"];
+};
+
+export const slugField = (sourceField = "title", opts: SlugFieldOptions = {}): Field => ({
   name: "slug",
   type: "text",
   label: "Slug URL",
   required: true,
   unique: true,
   index: true,
+  ...(opts.access ? { access: opts.access } : {}),
   admin: {
     position: "sidebar",
     description:
-      "Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Mengubahnya setelah terbit akan memutus tautan lama.",
+      "Bagian akhir alamat halaman. Dibuat otomatis dari judul bila dibiarkan kosong. Bila diubah setelah tayang, alamat lama otomatis dialihkan ke alamat baru (Pengaturan → Pengalihan URL).",
   },
   hooks: {
     beforeValidate: [formatSlug(sourceField)],
   },
+  // Impor CSV: slug berupa angka (mis. "1998") tidak boleh berubah menjadi number.
+  custom: { "plugin-import-export": { hooks: { beforeImport: asText } } },
 });

@@ -1,3 +1,4 @@
+import { draftMode } from "next/headers";
 import { NextResponse } from "next/server";
 import { rateLimit } from "@/lib/antibot";
 import { getPayloadClient } from "@/lib/payload";
@@ -15,6 +16,9 @@ const PLATFORMS = new Set(["tokopedia", "shopee", "tiktok", "blibli", "lazada", 
 export async function POST(request: Request) {
   // 204 juga untuk kiriman yang ditolak: klien tidak perlu tahu, dan tidak ada yang bisa dipelajari bot.
   const noContent = () => new NextResponse(null, { status: 204 });
+
+  // Klik admin yang sedang mempratinjau draf tidak dicatat, agar laporan klik tetap murni pengunjung.
+  if ((await draftMode()).isEnabled) return noContent();
 
   if (!(await rateLimit("klik", 60, 60_000))) return noContent();
 

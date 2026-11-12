@@ -40,6 +40,13 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run typecheck
       - run: npm test
+      # Build Docker TIDAK pernah membuat ulang importMap.js (dan payload-types.ts), jadi
+      # keduanya wajib ikut di-commit setiap kali konfigurasi Payload berubah.
+      - name: Cek drift payload-types.ts dan importMap.js
+        run: |
+          PAYLOAD_SECRET=ci-only npm run generate:types
+          PAYLOAD_SECRET=ci-only npm run generate:importmap
+          git diff --exit-code -- src/payload-types.ts 'src/app/(payload)/admin/importMap.js'
 
   audit:
     name: Gerbang audit dependensi

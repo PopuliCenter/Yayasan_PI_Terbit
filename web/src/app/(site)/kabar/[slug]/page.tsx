@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { BookGrid } from "@/components/BookCard";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { CoverImage } from "@/components/CoverImage";
@@ -8,25 +7,32 @@ import { RichTextContent } from "@/components/RichTextContent";
 import type { Book, Media } from "@/payload-types";
 import { getPostBySlug, getSettings } from "@/lib/data";
 import { formatDate } from "@/lib/format";
+import { redirectOrNotFound } from "@/lib/redirects";
+import { asMedia, ogBase, ogImageFrom, seoTitle } from "@/lib/seo";
 import { absoluteUrl, mediaPath } from "@/lib/site";
 
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getPostBySlug(slug);
+  const [post, s] = await Promise.all([getPostBySlug(slug), getSettings()]);
   if (!post) return { title: "Kabar tidak ditemukan" };
-  const image = post.coverImage && typeof post.coverImage === "object" ? (post.coverImage as Media) : null;
+  const description = post.meta?.description || post.excerpt;
+  // Gambar bagikan: tab SEO → gambar sampul (ukuran og 1200×630) → gambar bawaan situs.
+  const image =
+    ogImageFrom(asMedia(post.meta?.image), post.title) ?? ogImageFrom(asMedia(post.coverImage), post.title) ?? s.ogImage;
   return {
-    title: post.title,
-    description: post.excerpt,
+    title: seoTitle(post.meta?.title, s.siteName, post.title),
+    description,
     alternates: { canonical: `/kabar/${post.slug}` },
     openGraph: {
+      ...ogBase(s),
       type: "article",
-      title: post.title,
-      description: post.excerpt,
+      title: post.meta?.title || post.title,
+      description,
+      url: `/kabar/${post.slug}`,
       publishedTime: post.publishedAt ?? undefined,
-      images: image ? [{ url: mediaPath(image.sizes?.og?.url || image.url) ?? "" }] : undefined,
+      images: image ? [image] : undefined,
     },
   };
 }
@@ -34,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PostPage({ params }: Props) {
   const { slug } = await params;
   const post = await getPostBySlug(slug);
-  if (!post) notFound();
+  if (!post) return redirectOrNotFound(`/kabar/${slug}`);
 
   const settings = await getSettings();
   const image = post.coverImage && typeof post.coverImage === "object" ? (post.coverImage as Media) : null;

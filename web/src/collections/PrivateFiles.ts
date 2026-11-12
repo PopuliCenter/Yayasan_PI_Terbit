@@ -15,9 +15,11 @@ export const PrivateFiles: CollectionConfig = {
   admin: {
     group: "Pesanan",
     useAsTitle: "filename",
+    defaultColumns: ["filename", "note", "createdAt"],
     description:
       "Bukti transfer dan berkas lain yang berisi data pribadi. Hanya admin order dan super admin.",
   },
+  defaultSort: "-createdAt",
   access: {
     read: isOrder,
     create: isOrder,

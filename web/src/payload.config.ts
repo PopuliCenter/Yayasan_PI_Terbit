@@ -1,13 +1,13 @@
 import path from "path";
 import { fileURLToPath } from "url";
-import { buildConfig, type CollectionConfig } from "payload";
+import { buildConfig, type CollectionConfig, type PayloadRequest, type Plugin } from "payload";
 import { lexicalEditor } from "@payloadcms/richtext-lexical";
 import { postgresAdapter } from "@payloadcms/db-postgres";
 import { sqliteAdapter } from "@payloadcms/db-sqlite";
-import { en } from "@payloadcms/translations/languages/en";
 import { id } from "@payloadcms/translations/languages/id";
 import sharp from "sharp";
 
+import { dashboard } from "./admin/dashboard";
 import { Authors } from "./collections/Authors";
 import { AuditLogs } from "./collections/AuditLogs";
 import { Books } from "./collections/Books";
@@ -22,8 +22,19 @@ import { PrivateFiles } from "./collections/PrivateFiles";
 import { Series } from "./collections/Series";
 import { Subscribers } from "./collections/Subscribers";
 import { Users } from "./collections/Users";
+import { reportEndpoints } from "./endpoints/reports";
+import { Appearance } from "./globals/Appearance";
+import { Homepage } from "./globals/Homepage";
 import { Settings } from "./globals/Settings";
 import { auditAfterChange, auditAfterDelete } from "./hooks/audit";
+import { captureLivePath, createSlugRedirect, invalidateOnChange, invalidateOnDelete } from "./hooks/slugRedirect";
+import { adminTranslationsId } from "./i18n/admin-id";
+import { previewPath } from "./lib/preview-url";
+import { isRouted } from "./lib/urls";
+import { formBuilder } from "./plugins/formBuilder";
+import { importExport } from "./plugins/importExport";
+import { redirects } from "./plugins/redirects";
+import { seo } from "./plugins/seo";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -70,6 +81,36 @@ const withAudit = (collection: CollectionConfig): CollectionConfig => ({
   },
 });
 
+/** Bawaan daftar admin: tanpa tautan API mentah, 25 baris per halaman. Koleksi boleh menimpa. */
+const withAdminDefaults = (c: CollectionConfig): CollectionConfig => ({
+  ...c,
+  admin: { hideAPIURL: true, pagination: { defaultLimit: 25, limits: [25, 50, 100] }, ...c.admin },
+});
+
+/**
+ * Koleksi yang punya alamat publik: saat slug berubah, buat pengalihan dari alamat lama
+ * (F-SEO) dan segarkan tabel pengalihan di memori.
+ */
+const withSlugRedirects = (c: CollectionConfig): CollectionConfig =>
+  isRouted(c.slug)
+    ? {
+        ...c,
+        hooks: {
+          ...c.hooks,
+          beforeChange: [...(c.hooks?.beforeChange ?? []), captureLivePath],
+          afterChange: [...(c.hooks?.afterChange ?? []), createSlugRedirect, invalidateOnChange],
+          afterDelete: [...(c.hooks?.afterDelete ?? []), invalidateOnDelete],
+        },
+      }
+    : c;
+
+/** Audit dipasang SETELAH plugin lain, agar koleksi tambahan plugin (redirects, forms, form-submissions, imports) ikut tercatat. */
+const auditPlugin: Plugin = (config) => ({ ...config, collections: (config.collections ?? []).map(withAudit) });
+
+/** Antrean job hanya untuk super admin (plugin impor/ekspor selalu mendaftarkan task). */
+const superAdminOnly = ({ req }: { req: PayloadRequest }) =>
+  (req.user as { role?: string } | null)?.role === "super-admin";
+
 export default buildConfig({
   // serverURL sengaja TIDAK diisi: URL media menjadi relatif (/api/media/file/...),
   // sehingga satu image yang sama berlaku di apex (publik) dan admin.<domain>,
@@ -77,11 +118,56 @@ export default buildConfig({
   csrf: csrfOrigins,
   admin: {
     user: Users.slug,
+    avatar: "default", // bawaan 'gravatar' mengirim hash email admin ke gravatar.com
+    dateFormat: "d MMM yyyy, HH.mm",
     meta: {
       titleSuffix: " — Admin Yayasan Populi Indonesia",
+      description: "Panel pengelola situs penerbit Yayasan Populi Indonesia",
+      defaultOGImageType: "off",
+      icons: [{ rel: "icon", type: "image/svg+xml", url: "/brand/ypi-mark.svg" }],
+      openGraph: {
+        siteName: "Yayasan Populi Indonesia",
+        title: "Panel pengelola",
+        description: "Panel pengelola situs penerbit Yayasan Populi Indonesia",
+      },
+    },
+    components: {
+      graphics: {
+        Logo: "@/components/admin/graphics#AdminLogo",
+        Icon: "@/components/admin/graphics#AdminIcon",
+      },
+      beforeDashboard: ["@/components/admin/dashboard/WelcomeHeader#WelcomeHeader"],
+      beforeNavLinks: ["@/components/admin/nav/NavExtras#NavExtras"],
+      views: {
+        laporan: {
+          Component: "@/components/admin/views/ReportsView#ReportsView",
+          path: "/laporan",
+          exact: true,
+          meta: { title: "Laporan per judul" },
+        },
+      },
+    },
+    dashboard,
+    livePreview: {
+      collections: ["books", "pages", "posts"],
+      globals: ["homepage", "appearance"],
+      breakpoints: [
+        { name: "ponsel", label: "Ponsel", width: 390, height: 844 },
+        { name: "tablet", label: "Tablet", width: 768, height: 1024 },
+        { name: "laptop", label: "Laptop", width: 1366, height: 768 },
+      ],
+      // Path RELATIF: panel admin menjadikannya absolut terhadap origin admin, jadi iframe selalu same-origin di host admin.
+      url: ({ collectionConfig, globalConfig, data }) =>
+        previewPath({
+          collection: collectionConfig?.slug,
+          global: globalConfig?.slug,
+          id: data?.id,
+          slug: data?.slug,
+        }),
     },
   },
   collections: [
+    // Urutan ini juga urutan grup navigasi: Katalog, Konten, Pesanan, Laporan, Pengaturan.
     Books,
     Authors,
     Categories,
@@ -89,15 +175,26 @@ export default buildConfig({
     Media,
     Pages,
     Posts,
+    Inquiries,
     Orders,
     PrivateFiles,
-    Inquiries,
-    Subscribers,
     OrderClicks,
     AuditLogs,
+    Subscribers,
     Users,
-  ].map(withAudit),
-  globals: [Settings],
+  ]
+    .map(withAdminDefaults)
+    .map(withSlugRedirects),
+  globals: [Settings, Appearance, Homepage],
+  // Urutan penting: auditPlugin terakhir, agar koleksi dari plugin lain ikut diaudit.
+  plugins: [seo, redirects, formBuilder, importExport, auditPlugin],
+  endpoints: reportEndpoints,
+  // Plugin impor/ekspor selalu mendaftarkan task, jadi Payload mengaktifkan job (koleksi
+  // payload-jobs tersembunyi). Impor/ekspor berjalan sinkron: tanpa autoRun, tanpa worker.
+  jobs: {
+    access: { run: superAdminOnly, queue: superAdminOnly, cancel: superAdminOnly },
+    deleteJobOnComplete: true,
+  },
   editor: lexicalEditor(),
   // Wajib diteruskan agar ukuran gambar responsif dan konversi WebP di koleksi media berjalan.
   sharp,
@@ -107,9 +204,12 @@ export default buildConfig({
     outputFile: path.resolve(dirname, "payload-types.ts"),
   },
   localization: false,
+  // Panel admin hanya berbahasa Indonesia; terjemahan tambahan menutup string yang
+  // belum ada di paket `id` bawaan (Lexical, plugin SEO, pengalihan, impor/ekspor, formulir).
   i18n: {
     fallbackLanguage: "id",
-    supportedLanguages: { id, en },
+    supportedLanguages: { id },
+    translations: { id: adminTranslationsId },
   },
   graphQL: {
     disable: true,

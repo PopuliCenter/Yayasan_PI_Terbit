@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { BookGrid } from "@/components/BookCard";
 import { AvailabilityBadge, PriceTag } from "@/components/BookMeta";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
@@ -20,7 +19,9 @@ import {
   MARKETPLACE_LABEL,
 } from "@/lib/format";
 import { getDisplayPrice } from "@/lib/pricing";
+import { redirectOrNotFound } from "@/lib/redirects";
 import { hasRichText, lexicalToPlainText } from "@/lib/richtext";
+import { asMedia, ogBase, ogImageFrom, seoTitle } from "@/lib/seo";
 import { absoluteUrl, mediaPath } from "@/lib/site";
 import { buildWaMessage, waUrl } from "@/lib/wa";
 
@@ -30,32 +31,29 @@ const asObj = <T,>(v: number | T | null | undefined): T | null => (v && typeof v
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const book = await getBookBySlug(slug);
+  const [book, s] = await Promise.all([getBookBySlug(slug), getSettings()]);
   if (!book) return { title: "Buku tidak ditemukan" };
 
   const authors = joinNames(authorNames(book));
   const description =
-    book.metaDescription ||
+    book.meta?.description ||
     lexicalToPlainText(book.synopsis, 158) ||
-    `${book.title}${authors ? ` karya ${authors}` : ""}. Terbitan Yayasan Populi Indonesia.`;
-  const cover = asObj<Media>(book.cover);
-  const og = cover?.sizes?.og;
-  const ogImage = og?.url
-    ? { url: mediaPath(og.url) ?? "", width: og.width ?? 1200, height: og.height ?? 630 }
-    : cover?.url
-      ? { url: mediaPath(cover.url) ?? "" }
-      : null;
+    `${book.title}${authors ? ` karya ${authors}` : ""}. Terbitan ${s.publisherName}.`;
+  // Gambar bagikan: tab SEO → sampul (ukuran og 1200×630) → gambar bawaan situs.
+  const image =
+    ogImageFrom(asMedia(book.meta?.image), book.title) ?? ogImageFrom(asObj<Media>(book.cover), book.title) ?? s.ogImage;
 
   return {
-    title: book.metaTitle || (authors ? `${book.title} — ${authors}` : book.title),
+    title: seoTitle(book.meta?.title, s.siteName, authors ? `${book.title} — ${authors}` : book.title),
     description,
     alternates: { canonical: `/buku/${book.slug}` },
     openGraph: {
+      ...ogBase(s),
       type: "book",
-      title: book.title,
+      title: book.meta?.title || book.title,
       description,
       url: `/buku/${book.slug}`,
-      images: ogImage ? [{ ...ogImage, alt: cover?.alt ?? book.title }] : undefined,
+      images: image ? [image] : undefined,
       authors: authorNames(book),
       isbn: book.isbn13 ?? undefined,
     },
@@ -72,7 +70,7 @@ const SCHEMA_AVAILABILITY: Record<Book["availability"], string> = {
 export default async function BookPage({ params }: Props) {
   const { slug } = await params;
   const book = await getBookBySlug(slug);
-  if (!book) notFound();
+  if (!book) return redirectOrNotFound(`/buku/${slug}`);
 
   const [settings, related] = await Promise.all([getSettings(), getRelatedBooks(book)]);
 

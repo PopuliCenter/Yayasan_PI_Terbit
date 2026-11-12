@@ -1,24 +1,40 @@
+import type { DefaultNodeTypes, SerializedBlockNode } from "@payloadcms/richtext-lexical";
+import type { JSXConvertersFunction } from "@payloadcms/richtext-lexical/react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
+import { FormulirSection } from "@/components/forms/FormulirSection";
 import { WhatsAppIcon } from "@/components/Icons";
 import { RichTextContent } from "@/components/RichTextContent";
+import type { FormulirBlock } from "@/payload-types";
 import { getPageBySlug, getSettings, type PublicSettings } from "@/lib/data";
 import { SITE_URL } from "@/lib/site";
 import { formatDate, MARKETPLACE_LABEL } from "@/lib/format";
+import { getPreviewUser } from "@/lib/preview";
+import { redirectOrNotFound } from "@/lib/redirects";
 import { lexicalToPlainText } from "@/lib/richtext";
+import { asMedia, ogBase, ogImageFrom, seoTitle } from "@/lib/seo";
 import { waUrl } from "@/lib/wa";
 
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const page = await getPageBySlug(slug);
+  const [page, s] = await Promise.all([getPageBySlug(slug), getSettings()]);
   if (!page) return { title: "Halaman tidak ditemukan" };
+  const description = page.meta?.description || page.summary || lexicalToPlainText(page.content, 158) || undefined;
+  const image = ogImageFrom(asMedia(page.meta?.image), page.title) ?? s.ogImage;
   return {
-    title: page.title,
-    description: page.summary || lexicalToPlainText(page.content, 158) || undefined,
+    title: seoTitle(page.meta?.title, s.siteName, page.title),
+    description,
     alternates: { canonical: `/${page.slug}` },
+    openGraph: {
+      ...ogBase(s),
+      type: "website",
+      title: page.meta?.title || page.title,
+      description,
+      url: `/${page.slug}`,
+      images: image ? [image] : undefined,
+    },
   };
 }
 
@@ -92,8 +108,22 @@ function OrderChannelsBlock({ s }: { s: PublicSettings }) {
 
 export default async function StaticPage({ params }: Props) {
   const { slug } = await params;
-  const [page, settings] = await Promise.all([getPageBySlug(slug), getSettings()]);
-  if (!page) notFound();
+  const [page, settings, previewUser] = await Promise.all([getPageBySlug(slug), getSettings(), getPreviewUser()]);
+  if (!page) return redirectOrNotFound(`/${slug}`);
+
+  // Pratinjau admin: formulir tampil nonaktif agar tidak membuat kiriman sungguhan.
+  const preview = Boolean(previewUser);
+  const converters: JSXConvertersFunction<DefaultNodeTypes | SerializedBlockNode<FormulirBlock>> = ({
+    defaultConverters,
+  }) => ({
+    ...defaultConverters,
+    blocks: {
+      ...defaultConverters.blocks,
+      formulir: ({ node }) => (
+        <FormulirSection block={node.fields} sourcePath={`/${page.slug}`} preview={preview} />
+      ),
+    },
+  });
 
   return (
     <article className="page-container py-10">
@@ -107,7 +137,7 @@ export default async function StaticPage({ params }: Props) {
             {page.policyEffectiveDate ? <>Berlaku sejak {formatDate(page.policyEffectiveDate)}</> : null}
           </p>
         ) : null}
-        <RichTextContent data={page.content} className="mt-8" />
+        <RichTextContent data={page.content} className="mt-8" converters={converters} />
 
         {page.slug === "tentang" ? <IdentityBlock s={settings} /> : null}
         {page.slug === "cara-pesan" ? <OrderChannelsBlock s={settings} /> : null}

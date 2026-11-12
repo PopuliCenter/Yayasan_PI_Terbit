@@ -68,7 +68,7 @@ export function NewsletterForm({ consentText, consentVersion, issuedAt }: Props)
           required
           aria-invalid={consentError ? true : undefined}
           aria-describedby={consentError ? "nl-consent-error" : undefined}
-          className="mt-1 size-5 shrink-0 accent-accent-500"
+          className="mt-1 size-5 shrink-0 accent-accent-700"
         />
         <label htmlFor="nl-consent" className="text-xs leading-relaxed text-muted">
           {consentText}

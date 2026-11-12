@@ -1,8 +1,11 @@
 import { cache } from "react";
 import type { Where } from "payload";
 import type { Author, Book, Category, Page, Post, Series, Setting } from "@/payload-types";
+import { resolveAppearance, type AppearanceInput, type ResolvedAppearance } from "./appearance/resolve";
 import { getPayloadClient } from "./payload";
+import { getPreviewUser } from "./preview";
 import { searchBookIds } from "./search";
+import { asMedia, ogImageFrom, type OgImage } from "./seo";
 import { DEFAULT_WA_TEMPLATE } from "./wa";
 
 /**
@@ -10,6 +13,23 @@ import { DEFAULT_WA_TEMPLATE } from "./wa";
  * access koleksi (mis. hanya dokumen terbit) ditegakkan Payload, bukan oleh tiap kueri.
  */
 const PUBLIC = { overrideAccess: false } as const;
+
+/**
+ * Baca SATU dokumen menurut slug: draf terbaru bila admin sedang mempratinjau
+ * (getPreviewUser: cookie draftMode + host admin + JWT Access + sesi Payload), selain
+ * itu sama dengan PUBLIC. Tetap `overrideAccess: false` dengan pengguna admin, jadi
+ * aturan access koleksi tetap berlaku; tidak pernah overrideAccess: true untuk draf.
+ *
+ * Hanya dipakai getBookBySlug, getPageBySlug, dan getPostBySlug. Semua getter daftar
+ * (katalog, terkait, beranda, kabar, footer, penulis/kategori/seri) tetap PUBLIC, agar
+ * dokumen lain yang belum terbit tidak pernah ikut tampil di pratinjau.
+ *
+ * cache() React berlaku per permintaan, jadi hasil getPreviewUser tidak bocor antar pengunjung.
+ */
+const subjectRead = async () => {
+  const user = await getPreviewUser();
+  return user ? ({ overrideAccess: false, draft: true, user } as const) : PUBLIC;
+};
 
 export const PAGE_SIZE = 24;
 
@@ -44,19 +64,23 @@ export type PublicSettings = {
   consentVersion: string;
   consentText: string;
   defaultMetaDescription: string | null;
+  /** Gambar bagikan bawaan (og:image) untuk halaman tanpa gambar sendiri. */
+  ogImage: OgImage | null;
 };
 
 export const getSettings = cache(async (): Promise<PublicSettings> => {
   const payload = await getPayloadClient();
   // overrideAccess: global ini tertutup untuk publik karena memuat rekening transfer.
+  // depth 1 agar relasi ogImage terisi (Media); rekening transfer tetap tidak dikembalikan.
   const s = (await payload.findGlobal({
     slug: "settings",
     overrideAccess: true,
-    depth: 0,
+    depth: 1,
   })) as Partial<Setting>;
+  const siteName = s.siteName || "Yayasan Populi Indonesia";
 
   return {
-    siteName: s.siteName || "Yayasan Populi Indonesia",
+    siteName,
     tagline: s.tagline ?? null,
     legalEntityName: s.legalEntityName ?? null,
     sellerEntityName: s.sellerEntityName ?? null,
@@ -82,7 +106,39 @@ export const getSettings = cache(async (): Promise<PublicSettings> => {
       s.consentText ||
       "Saya setuju menerima email kabar terbitan baru, dan saya boleh berhenti kapan saja.",
     defaultMetaDescription: s.defaultMetaDescription ?? null,
+    ogImage: ogImageFrom(asMedia(s.ogImage), siteName),
   };
+});
+
+/* -------------------------------------------------------------------------- */
+/* Tampilan                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Global Tampilan (tema, menu header, footer, pengumuman) siap render. Satu baca DB per
+ * permintaan berkat cache(). Pengunjung: versi tayang; admin yang mempratinjau: draf terbaru.
+ * Gagal baca (mis. tabel belum dimigrasi) -> tampilan bawaan, situs tidak pernah kosong.
+ */
+export const getAppearance = cache(async (): Promise<ResolvedAppearance & { preview: boolean }> => {
+  // Di luar try: API dinamis Next (headers/draftMode) tidak boleh tertelan catch.
+  const previewUser = await getPreviewUser();
+  const payload = await getPayloadClient();
+  let raw: AppearanceInput;
+  try {
+    raw = (await payload.findGlobal({
+      slug: "appearance",
+      // Publik: tanpa pengguna, akses Payload ditegakkan (halaman relasi yang belum terbit
+      // tidak terisi -> tautannya dibuang). Pratinjau: draf terbaru, tetap tanpa overrideAccess.
+      overrideAccess: false,
+      depth: 1,
+      populate: { pages: { title: true, slug: true } },
+      ...(previewUser ? { draft: true, user: previewUser } : {}),
+    })) as AppearanceInput;
+  } catch (err) {
+    payload.logger.error({ err }, "Gagal membaca global Tampilan; memakai tampilan bawaan");
+    raw = null;
+  }
+  return { ...resolveAppearance(raw, new Date()), preview: Boolean(previewUser) };
 });
 
 /* -------------------------------------------------------------------------- */
@@ -193,10 +249,11 @@ export const getBookBySlug = cache(async (slug: string): Promise<Book | null> =>
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "books",
-    ...PUBLIC,
+    ...(await subjectRead()),
     where: { slug: { equals: slug } },
     depth: 2,
     limit: 1,
+    sort: "-updatedAt",
   });
   return result.docs[0] ?? null;
 });
@@ -340,10 +397,11 @@ export const getPageBySlug = cache(async (slug: string): Promise<Page | null> =>
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "pages",
-    ...PUBLIC,
+    ...(await subjectRead()),
     where: { slug: { equals: slug } },
     depth: 1,
     limit: 1,
+    sort: "-updatedAt",
   });
   return result.docs[0] ?? null;
 });
@@ -379,10 +437,11 @@ export const getPostBySlug = cache(async (slug: string): Promise<Post | null> =>
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "posts",
-    ...PUBLIC,
+    ...(await subjectRead()),
     where: { slug: { equals: slug } },
     depth: 2,
     limit: 1,
+    sort: "-updatedAt",
   });
   return result.docs[0] ?? null;
 });

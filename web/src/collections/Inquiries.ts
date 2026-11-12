@@ -13,12 +13,13 @@ export const Inquiries: CollectionConfig = {
   labels: { singular: "Pesan Masuk", plural: "Pesan Masuk" },
   admin: {
     useAsTitle: "subjectLine",
-    defaultColumns: ["subjectLine", "type", "name", "status", "createdAt"],
+    defaultColumns: ["subjectLine", "type", "status", "createdAt"],
     group: "Pesanan",
     description:
       "Permintaan penawaran institusi, pertanyaan, pengaduan, dan pengiriman naskah.",
     listSearchableFields: ["name", "email", "institutionName", "message"],
   },
+  defaultSort: "-createdAt",
   access: {
     read: isAdmin,
     create: () => false,
