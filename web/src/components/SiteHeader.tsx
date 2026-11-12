@@ -33,7 +33,8 @@ type Props = {
 export function SiteHeader({ waNumber, nav = DEFAULT_NAV, showWhatsAppButton = true, homeHref = "/" }: Props) {
   const desktopNav = nav.filter((item) => !item.mobileOnly);
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-paper">
+    // font-header: huruf menu atas dari global Tampilan (bawaan = huruf isi); nama yayasan tetap font-serif (huruf judul).
+    <header className="sticky top-0 z-40 border-b border-line bg-paper font-header">
       <div className="page-container flex h-16 items-center gap-4">
         {/* Nama tautan = teks yang terlihat + "beranda" (WCAG 2.5.3 label in name). */}
         <Link

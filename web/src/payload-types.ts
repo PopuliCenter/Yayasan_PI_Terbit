@@ -2117,7 +2117,7 @@ export interface Setting {
   createdAt?: string | null;
 }
 /**
- * Warna, menu atas, footer, dan pengumuman situs. Perubahan tersimpan sebagai draf; pengunjung melihatnya setelah Anda menekan Tayangkan.
+ * Warna, huruf, menu atas, footer, dan pengumuman situs. Perubahan tersimpan sebagai draf; pengunjung melihatnya setelah Anda menekan Tayangkan.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "appearance".
@@ -2138,6 +2138,64 @@ export interface Appearance {
      * Kosongkan agar dihitung otomatis dari warna mode terang.
      */
     accentDark?: string | null;
+    /**
+     * Judul halaman dan buku, nama yayasan di header, label miring, dan kutipan.
+     */
+    headingFont:
+      | 'inter'
+      | 'plus-jakarta-sans'
+      | 'ibm-plex-sans'
+      | 'work-sans'
+      | 'public-sans'
+      | 'source-serif-4'
+      | 'lora'
+      | 'merriweather'
+      | 'literata'
+      | 'noto-serif';
+    /**
+     * Teks isi, tombol, dan formulir.
+     */
+    bodyFont:
+      | 'inter'
+      | 'plus-jakarta-sans'
+      | 'ibm-plex-sans'
+      | 'work-sans'
+      | 'public-sans'
+      | 'source-serif-4'
+      | 'lora'
+      | 'merriweather'
+      | 'literata'
+      | 'noto-serif';
+    /**
+     * Menu, tombol, dan pencarian di header. Nama yayasan tetap memakai huruf judul.
+     */
+    headerFont:
+      | 'ikut-isi'
+      | 'inter'
+      | 'plus-jakarta-sans'
+      | 'ibm-plex-sans'
+      | 'work-sans'
+      | 'public-sans'
+      | 'source-serif-4'
+      | 'lora'
+      | 'merriweather'
+      | 'literata'
+      | 'noto-serif';
+    /**
+     * Teks dan judul kolom footer. Nama situs tetap memakai huruf judul.
+     */
+    footerFont:
+      | 'ikut-isi'
+      | 'inter'
+      | 'plus-jakarta-sans'
+      | 'ibm-plex-sans'
+      | 'work-sans'
+      | 'public-sans'
+      | 'source-serif-4'
+      | 'lora'
+      | 'merriweather'
+      | 'literata'
+      | 'noto-serif';
   };
   /**
    * Seret untuk mengubah urutan. Layar lebar menampilkan paling banyak 5 item; "Hanya menu HP" tampil di menu lipat saja.
@@ -2558,6 +2616,10 @@ export interface AppearanceSelect<T extends boolean = true> {
         customAccent?: T;
         accentLight?: T;
         accentDark?: T;
+        headingFont?: T;
+        bodyFont?: T;
+        headerFont?: T;
+        footerFont?: T;
       };
   headerNav?:
     | T

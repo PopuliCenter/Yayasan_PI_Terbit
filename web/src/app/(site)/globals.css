@@ -2,14 +2,31 @@
 
 /*
  * Sistem desain situs penerbit.
- * Palet navy + oranye dengan pasangan Inter / Source Serif 4. Latar dibuat terang ("kertas")
+ * Palet navy + oranye dengan pasangan bawaan Inter / Source Serif 4. Latar dibuat terang ("kertas")
  * supaya sampul buku menonjol.
  * Semua pasangan teks/latar di bawah lolos WCAG 2.1 AA (≥ 4,5:1 untuk teks biasa).
+ * Warna dan huruf bawaan dapat ditimpa dari global Tampilan lewat <style id="tema-situs">
+ * (lib/appearance/theme.ts dan lib/appearance/fonts.ts).
  */
 
+/*
+ * Huruf per peran. Nilai di sini = bawaan dan harus sama dengan fontStack() di
+ * lib/appearance/fonts.ts (diuji). `static`: variabel selalu dikeluarkan walau tidak ada kelas
+ * yang memakainya, karena blok tema-situs dan header/footer merujuknya. Blok ini sengaja BUKAN
+ * `@theme {` biasa: theme.test.ts membaca blok `@theme {` pertama sebagai token warna.
+ * Header dan footer mengikuti huruf isi kecuali admin memilih huruf lain.
+ */
+@theme static {
+  --font-judul: var(--font-source-serif), Georgia, Cambria, serif;
+  --font-isi: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-header: var(--font-isi);
+  --font-footer: var(--font-isi);
+}
+
+/* font-sans/font-serif Tailwind = alias peran, dibaca per elemen sehingga ikut pilihan admin. */
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-serif: var(--font-source-serif), Georgia, Cambria, serif;
+  --font-sans: var(--font-isi);
+  --font-serif: var(--font-judul);
 }
 
 @theme {
@@ -150,7 +167,7 @@
   body {
     background: var(--color-paper);
     color: var(--color-body);
-    font-family: var(--font-sans);
+    font-family: var(--font-isi);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
@@ -159,7 +176,7 @@
   h2,
   h3,
   h4 {
-    font-family: var(--font-serif);
+    font-family: var(--font-judul);
     color: var(--color-ink);
     letter-spacing: -0.01em;
     text-wrap: balance;

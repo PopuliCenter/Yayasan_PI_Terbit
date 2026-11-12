@@ -4,19 +4,15 @@ import "@payloadcms/next/css";
 import "./custom.css";
 import type { ServerFunctionClient } from "payload";
 import { handleServerFunctions, RootLayout } from "@payloadcms/next/layouts";
-import { Inter, Source_Serif_4 } from "next/font/google";
 import { headers } from "next/headers";
 import React from "react";
+import { ALL_FONT_VARIABLE_CLASSES } from "@/app/fonts";
 import { isAdminRequest } from "@/lib/admin-host";
 import { importMap } from "./admin/importMap.js";
 
 type Args = {
   children: React.ReactNode;
 };
-
-// Huruf yang sama dengan situs (di-host sendiri oleh next/font), dipetakan ke --font-body/--font-serif di custom.css.
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const serif = Source_Serif_4({ subsets: ["latin"], variable: "--font-source-serif", display: "swap" });
 
 /**
  * Server function admin Payload (dipakai panel untuk form state, render field, dsb.).
@@ -44,7 +40,10 @@ const Layout = ({ children }: Args) => (
     config={config}
     importMap={importMap}
     serverFunction={serverFunction}
-    htmlProps={{ className: `${inter.variable} ${serif.variable}` }}
+    // Huruf di-host sendiri oleh next/font (app/fonts.ts). Panel admin tetap Inter / Source Serif 4
+    // (--font-body/--font-serif di custom.css); semua kelas variabel dipasang agar contoh huruf
+    // di Tampilan Situs (ThemePreview) memakai huruf yang sebenarnya.
+    htmlProps={{ className: ALL_FONT_VARIABLE_CLASSES }}
   >
     {children}
   </RootLayout>
