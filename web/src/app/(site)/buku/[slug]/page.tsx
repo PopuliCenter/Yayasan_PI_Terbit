@@ -11,12 +11,19 @@ import type { Author, Book, Category, Media, Series } from "@/payload-types";
 import { getBookBySlug, getRelatedBooks, getSettings } from "@/lib/data";
 import {
   AVAILABILITY,
-  authorNames,
+  byline,
+  CONTRIBUTOR_ROLES,
+  contributorEntries,
+  contributorNames,
+  contributorPhrase,
+  contributorsOf,
   formatDimensions,
   formatRupiah,
   joinNames,
   LANGUAGE_LABEL,
+  listSeparator,
   MARKETPLACE_LABEL,
+  ROLE_LABEL,
 } from "@/lib/format";
 import { getDisplayPrice } from "@/lib/pricing";
 import { redirectOrNotFound } from "@/lib/redirects";
@@ -29,22 +36,30 @@ type Props = { params: Promise<{ slug: string }> };
 
 const asObj = <T,>(v: number | T | null | undefined): T | null => (v && typeof v === "object" ? v : null);
 
+/** Orang untuk JSON-LD; larik kosong menjadi undefined karena JSON.stringify hanya membuang undefined. */
+const persons = (list: Author[]) =>
+  list.length
+    ? list.map((a) => ({ "@type": "Person", name: a.name, url: absoluteUrl(`/penulis/${a.slug}`) }))
+    : undefined;
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const [book, s] = await Promise.all([getBookBySlug(slug), getSettings()]);
   if (!book) return { title: "Buku tidak ditemukan" };
 
-  const authors = joinNames(authorNames(book));
+  const names = contributorNames(book);
+  const phrase = contributorPhrase(names);
+  const line = byline(names);
   const description =
     book.meta?.description ||
     lexicalToPlainText(book.synopsis, 158) ||
-    `${book.title}${authors ? ` karya ${authors}` : ""}. Terbitan ${s.publisherName}.`;
+    `${book.title}${phrase ? ` ${phrase}` : ""}. Terbitan ${s.publisherName}.`;
   // Gambar bagikan: tab SEO → sampul (ukuran og 1200×630) → gambar bawaan situs.
   const image =
     ogImageFrom(asMedia(book.meta?.image), book.title) ?? ogImageFrom(asObj<Media>(book.cover), book.title) ?? s.ogImage;
 
   return {
-    title: seoTitle(book.meta?.title, s.siteName, authors ? `${book.title} — ${authors}` : book.title),
+    title: seoTitle(book.meta?.title, s.siteName, line ? `${book.title} — ${line}` : book.title),
     description,
     alternates: { canonical: `/buku/${book.slug}` },
     openGraph: {
@@ -54,7 +69,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url: `/buku/${book.slug}`,
       images: image ? [image] : undefined,
-      authors: authorNames(book),
+      // Buku suntingan tanpa penulis: penyunting yang dicantumkan.
+      authors: names.authors.length ? names.authors : names.editors,
       isbn: book.isbn13 ?? undefined,
     },
   };
@@ -74,7 +90,11 @@ export default async function BookPage({ params }: Props) {
 
   const [settings, related] = await Promise.all([getSettings(), getRelatedBooks(book)]);
 
-  const authors = (book.authors ?? []).map((a) => asObj<Author>(a)).filter((a): a is Author => Boolean(a));
+  const people = contributorsOf(book);
+  const roleLines = CONTRIBUTOR_ROLES.map((r) => ({ ...r, people: people[r.key] })).filter((r) => r.people.length > 0);
+  // Profil singkat: tiap orang sekali, beserta semua perannya pada buku ini.
+  const bios = contributorEntries(people).filter((e) => e.person.shortBio);
+  const onlyAuthors = bios.every((e) => e.roles.length === 1 && e.roles[0] === "authors");
   const categories = (book.categories ?? [])
     .map((c) => asObj<Category>(c))
     .filter((c): c is Category => Boolean(c));
@@ -105,7 +125,7 @@ export default async function BookPage({ params }: Props) {
   const dimensions = formatDimensions(book);
 
   const details: { label: string; value: React.ReactNode }[] = [
-    { label: "Penulis", value: joinNames(authors.map((a) => a.name)) },
+    ...CONTRIBUTOR_ROLES.map(({ key, label }) => ({ label, value: joinNames(people[key].map((a) => a.name)) })),
     // Penerbit dan ISBN selalu tampil: verifikator ISBN Perpusnas memeriksa halaman buku ini
     // (FAQ ISBN: katalog memuat sampul, judul, penulis, ISBN — boleh "dalam proses" — dan sinopsis).
     { label: "Penerbit", value: settings.publisherName },
@@ -189,18 +209,22 @@ export default async function BookPage({ params }: Props) {
           <h1 className="mt-3 text-3xl font-semibold leading-tight sm:text-4xl">{book.title}</h1>
           {book.subtitle ? <p className="mt-2 font-serif text-xl text-body">{book.subtitle}</p> : null}
 
-          {authors.length > 0 ? (
-            <p className="mt-4 text-base">
-              <span className="text-muted">oleh </span>
-              {authors.map((a, i) => (
-                <span key={a.id}>
-                  <Link href={`/penulis/${a.slug}`} className="link font-semibold">
-                    {a.name}
-                  </Link>
-                  {i < authors.length - 2 ? ", " : i === authors.length - 2 ? " dan " : ""}
-                </span>
+          {roleLines.length > 0 ? (
+            <div className="mt-4 space-y-1 text-base">
+              {roleLines.map(({ key, label, people: list }) => (
+                <p key={key}>
+                  <span className="text-muted">{label}: </span>
+                  {list.map((a, i) => (
+                    <span key={a.id}>
+                      <Link href={`/penulis/${a.slug}`} className="link font-semibold">
+                        {a.name}
+                      </Link>
+                      {listSeparator(i, list.length)}
+                    </span>
+                  ))}
+                </p>
               ))}
-            </p>
+            </div>
           ) : null}
 
           <div className="mt-6">
@@ -271,34 +295,35 @@ export default async function BookPage({ params }: Props) {
                 </section>
               ) : null}
 
-              {authors.some((a) => a.shortBio) ? (
+              {bios.length > 0 ? (
                 <section aria-labelledby="tentang-penulis">
                   <h2 id="tentang-penulis" className="text-xl font-semibold">
-                    Tentang penulis
+                    {onlyAuthors ? "Tentang penulis" : "Tentang kontributor"}
                   </h2>
                   <ul className="mt-3 space-y-4">
-                    {authors
-                      .filter((a) => a.shortBio)
-                      .map((a) => (
-                        <li key={a.id} className="flex gap-4">
-                          {asObj<Media>(a.photo) ? (
-                            <CoverImage
-                              media={a.photo}
-                              sizes="64px"
-                              className="size-16 shrink-0 rounded-full object-cover"
-                              alt=""
-                            />
-                          ) : null}
-                          <div>
-                            <h3 className="font-sans text-base font-semibold">
-                              <Link href={`/penulis/${a.slug}`} className="link inline-flex min-h-11 items-center">
-                                {a.name}
-                              </Link>
-                            </h3>
-                            <p className="mt-1 text-sm leading-relaxed">{a.shortBio}</p>
-                          </div>
-                        </li>
-                      ))}
+                    {bios.map(({ person: a, roles }) => (
+                      <li key={a.id} className="flex gap-4">
+                        {asObj<Media>(a.photo) ? (
+                          <CoverImage
+                            media={a.photo}
+                            sizes="64px"
+                            className="size-16 shrink-0 rounded-full object-cover"
+                            alt=""
+                          />
+                        ) : null}
+                        <div>
+                          <h3 className="font-sans text-base font-semibold">
+                            <Link href={`/penulis/${a.slug}`} className="link inline-flex min-h-11 items-center">
+                              {a.name}
+                            </Link>
+                          </h3>
+                          {onlyAuthors ? null : (
+                            <p className="text-sm text-muted">{roles.map((r) => ROLE_LABEL[r]).join(" · ")}</p>
+                          )}
+                          <p className="mt-1 text-sm leading-relaxed">{a.shortBio}</p>
+                        </div>
+                      </li>
+                    ))}
                   </ul>
                 </section>
               ) : null}
@@ -357,7 +382,9 @@ export default async function BookPage({ params }: Props) {
           inLanguage: book.language === "en" ? "en" : book.language === "id" ? "id" : undefined,
           datePublished: book.publishedYear ? String(book.publishedYear) : undefined,
           bookEdition: book.edition || undefined,
-          author: authors.map((a) => ({ "@type": "Person", name: a.name, url: absoluteUrl(`/penulis/${a.slug}`) })),
+          author: persons(people.authors),
+          editor: persons(people.editors),
+          translator: persons(people.translators),
           brand: { "@type": "Brand", name: settings.siteName },
           publisher: { "@type": "Organization", name: settings.publisherName, url: absoluteUrl("/tentang") },
           weight: book.weightGram ? { "@type": "QuantitativeValue", value: book.weightGram, unitCode: "GRM" } : undefined,

@@ -45,7 +45,7 @@ export function CatalogFilters({ params, categories, authors }: Props) {
         </div>
         <div className="md:col-span-4 lg:col-span-2">
           <label htmlFor="f-penulis" className="field-label">
-            Penulis
+            Penulis/penyunting
           </label>
           <select id="f-penulis" name="penulis" defaultValue={params.penulis ?? ""} className="field-input">
             <option value="">Semua</option>

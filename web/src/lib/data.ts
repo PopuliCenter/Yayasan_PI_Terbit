@@ -177,6 +177,11 @@ export type CatalogResult = {
 
 const AVAILABILITY_VALUES = new Set(["tersedia", "terbatas", "habis", "segera"]);
 
+/** Seseorang tercantum di buku sebagai penulis, penyunting, atau penerjemah. */
+const contributedBy = (personId: number): Where => ({
+  or: [{ authors: { in: [personId] } }, { editors: { in: [personId] } }, { translators: { in: [personId] } }],
+});
+
 export const getCatalog = cache(async (params: CatalogParams): Promise<CatalogResult> => {
   const payload = await getPayloadClient();
   const query = (params.q ?? "").trim().slice(0, 120);
@@ -193,7 +198,7 @@ export const getCatalog = cache(async (params: CatalogParams): Promise<CatalogRe
   if (params.penulis) {
     const author = await getAuthorBySlug(params.penulis);
     if (!author) return { docs: [], totalDocs: 0, page: 1, totalPages: 0, query, sort: sortKey };
-    and.push({ authors: { in: [author.id] } });
+    and.push(contributedBy(author.id));
   }
   if (params.ketersediaan && AVAILABILITY_VALUES.has(params.ketersediaan)) {
     and.push({ availability: { equals: params.ketersediaan } });
@@ -327,12 +332,13 @@ export const getAuthorBySlug = cache(async (slug: string): Promise<Author | null
   return result.docs[0] ?? null;
 });
 
-export const getBooksByAuthor = cache(async (authorId: number): Promise<Book[]> => {
+/** Buku tempat seseorang menjadi penulis, penyunting, atau penerjemah (depth 1 cukup untuk rolesOf). */
+export const getBooksByContributor = cache(async (personId: number): Promise<Book[]> => {
   const payload = await getPayloadClient();
   const result = await payload.find({
     collection: "books",
     ...PUBLIC,
-    where: { authors: { in: [authorId] } },
+    where: contributedBy(personId),
     depth: 1,
     limit: 200,
     pagination: false,

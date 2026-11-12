@@ -2,6 +2,7 @@ import { seoPlugin } from "@payloadcms/plugin-seo";
 import type { GenerateDescription, GenerateImage, GenerateTitle, GenerateURL } from "@payloadcms/plugin-seo/types";
 import type { CollectionConfig, GlobalConfig, PayloadRequest } from "payload";
 import { seoFields } from "../fields/seo";
+import { byline, type Contributors, contributorPhrase } from "../lib/format";
 import { lexicalToPlainText } from "../lib/richtext";
 import { SITE_URL } from "../lib/site";
 import { isRouted, pathFor } from "../lib/urls";
@@ -68,24 +69,32 @@ const clip = (input: string, n = DESCRIPTION_MAX): string => {
   return `${(space > 0 ? cut.slice(0, space) : cut).replace(/[\s,.;:–—-]+$/, "")}…`;
 };
 
-/** Nama penulis sesuai urutan di buku. Akses biasa (overrideAccess:false) atas nama pengguna. */
-const authorNames = async (value: unknown, req: PayloadRequest): Promise<string> => {
-  const ids = (Array.isArray(value) ? value : []).map(idOf).filter((id): id is number | string => id !== null);
-  if (ids.length === 0) return "";
-  const { docs } = await req.payload.find({
-    collection: "authors",
-    where: { id: { in: ids } },
-    depth: 0,
-    pagination: false,
-    select: { name: true },
-    overrideAccess: false,
-    req,
-  });
-  const byId = new Map(docs.map((d) => [String(d.id), d.name]));
-  return ids
-    .map((id) => byId.get(String(id)))
-    .filter((name): name is string => Boolean(name))
-    .join(", ");
+/**
+ * Nama penulis, penyunting, dan penerjemah sesuai urutan di buku, dengan satu kueri untuk
+ * ketiga peran. Akses biasa (overrideAccess:false) atas nama pengguna.
+ */
+const contributorNamesFromDoc = async (doc: GenDoc, req: PayloadRequest): Promise<Contributors> => {
+  const idsOf = (value: unknown) =>
+    (Array.isArray(value) ? value : []).map(idOf).filter((id): id is number | string => id !== null);
+  const ids = { authors: idsOf(doc?.authors), editors: idsOf(doc?.editors), translators: idsOf(doc?.translators) };
+  // Satu orang bisa memegang dua peran; ID ganda cukup dicari sekali.
+  const union = [...new Map([...ids.authors, ...ids.editors, ...ids.translators].map((id) => [String(id), id])).values()];
+  const byId = new Map<string, string>();
+  if (union.length) {
+    const { docs } = await req.payload.find({
+      collection: "authors",
+      where: { id: { in: union } },
+      depth: 0,
+      pagination: false,
+      select: { name: true },
+      overrideAccess: false,
+      req,
+    });
+    for (const d of docs) if (d.name) byId.set(String(d.id), d.name);
+  }
+  const names = (list: (number | string)[]) =>
+    list.map((id) => byId.get(String(id))).filter((name): name is string => Boolean(name));
+  return { authors: names(ids.authors), editors: names(ids.editors), translators: names(ids.translators) };
 };
 
 const generateTitle: GenerateTitle<GenDoc> = async (args) => {
@@ -98,10 +107,10 @@ const generateTitle: GenerateTitle<GenDoc> = async (args) => {
   if (!title) return "";
 
   if (target === "books") {
-    const authors = await authorNames(args.doc?.authors, args.req);
+    const line = byline(await contributorNamesFromDoc(args.doc, args.req));
     return fit(
-      authors
-        ? [`${title} — ${authors} — ${site}`, `${title} — ${site}`, `${title} — ${authors}`, title]
+      line
+        ? [`${title} — ${line} — ${site}`, `${title} — ${site}`, `${title} — ${line}`, title]
         : [`${title} — ${site}`, title],
     );
   }
@@ -117,9 +126,10 @@ const generateDescription: GenerateDescription<GenDoc> = async (args) => {
     if (fromSynopsis) return fromSynopsis;
     const title = str(doc.title);
     if (!title) return "";
-    const [s, authors] = await Promise.all([settings(args.req), authorNames(doc.authors, args.req)]);
+    const [s, contributors] = await Promise.all([settings(args.req), contributorNamesFromDoc(doc, args.req)]);
     const publisher = str(s.legalEntityName) || str(s.siteName) || FALLBACK_SITE;
-    return clip(`${title}${authors ? ` karya ${authors}` : ""}. Terbitan ${publisher}.`);
+    const phrase = contributorPhrase(contributors);
+    return clip(`${title}${phrase ? ` ${phrase}` : ""}. Terbitan ${publisher}.`);
   }
   if (target === "pages") {
     const summary = str(doc.summary);

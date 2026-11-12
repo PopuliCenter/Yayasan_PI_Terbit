@@ -5,7 +5,8 @@ import { CoverImage } from "@/components/CoverImage";
 import { JsonLd } from "@/components/JsonLd";
 import { RichTextContent } from "@/components/RichTextContent";
 import type { Media } from "@/payload-types";
-import { getAuthorBySlug, getBooksByAuthor, getSettings } from "@/lib/data";
+import { getAuthorBySlug, getBooksByContributor, getSettings } from "@/lib/data";
+import { CONTRIBUTOR_ROLES, type ContributorRole, rolesOf } from "@/lib/format";
 import { redirectOrNotFound } from "@/lib/redirects";
 import { hasRichText, lexicalToPlainText } from "@/lib/richtext";
 import { asMedia, ogBase, ogImageFrom } from "@/lib/seo";
@@ -13,12 +14,19 @@ import { absoluteUrl } from "@/lib/site";
 
 type Props = { params: Promise<{ slug: string }> };
 
+/** Judul bagian per peran; satu orang bisa muncul di beberapa bagian. */
+const SECTION: Record<ContributorRole, { id: string; heading: string }> = {
+  authors: { id: "buku-karya", heading: "Buku karya" },
+  editors: { id: "buku-suntingan", heading: "Buku suntingan" },
+  translators: { id: "buku-terjemahan", heading: "Buku terjemahan" },
+};
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const [author, s] = await Promise.all([getAuthorBySlug(slug), getSettings()]);
   if (!author) return { title: "Penulis tidak ditemukan" };
   const description =
-    author.shortBio || lexicalToPlainText(author.bio, 158) || `Buku karya ${author.name} terbitan ${s.publisherName}.`;
+    author.shortBio || lexicalToPlainText(author.bio, 158) || `Buku ${author.name} terbitan ${s.publisherName}.`;
   // openGraph halaman menggantikan seluruh openGraph layout (penggabungan dangkal), jadi
   // gambar bagikan diisi di sini: foto penulis (ukuran og) → gambar bawaan situs.
   const image = ogImageFrom(asMedia(author.photo), author.name) ?? s.ogImage;
@@ -42,7 +50,12 @@ export default async function AuthorPage({ params }: Props) {
   const author = await getAuthorBySlug(slug);
   if (!author) return redirectOrNotFound(`/penulis/${slug}`);
 
-  const books = await getBooksByAuthor(author.id);
+  const books = await getBooksByContributor(author.id);
+  const groups = CONTRIBUTOR_ROLES.map((r) => ({
+    ...r,
+    ...SECTION[r.key],
+    books: books.filter((b) => rolesOf(b, author.id).includes(r.key)),
+  })).filter((g) => g.books.length > 0);
   const photo = author.photo && typeof author.photo === "object" ? (author.photo as Media) : null;
 
   return (
@@ -54,7 +67,7 @@ export default async function AuthorPage({ params }: Props) {
           <CoverImage media={photo} sizes="128px" className="size-32 shrink-0 rounded-full object-cover" alt="" priority />
         ) : null}
         <div className="max-w-3xl">
-          <p className="eyebrow">Penulis</p>
+          <p className="eyebrow">{groups.length ? groups.map((g) => g.label).join(" · ") : "Penulis"}</p>
           <h1 className="mt-1 text-3xl font-semibold sm:text-4xl">{author.name}</h1>
           {author.shortBio ? <p className="mt-3 text-lg">{author.shortBio}</p> : null}
         </div>
@@ -69,18 +82,26 @@ export default async function AuthorPage({ params }: Props) {
         </section>
       ) : null}
 
-      <section aria-labelledby="buku-penulis" className="mt-14">
-        <h2 id="buku-penulis" className="text-2xl font-semibold">
-          Buku karya {author.name} <span className="font-sans text-base font-normal text-muted">({books.length})</span>
-        </h2>
-        <div className="mt-6">
-          {books.length > 0 ? (
-            <BookGrid books={books} priorityCount={4} />
-          ) : (
-            <p className="card p-6 text-muted">Belum ada buku yang tayang.</p>
-          )}
-        </div>
-      </section>
+      {groups.length > 0 ? (
+        groups.map((g, i) => (
+          <section key={g.key} aria-labelledby={g.id} className="mt-14">
+            <h2 id={g.id} className="text-2xl font-semibold">
+              {g.heading} {author.name}{" "}
+              <span className="font-sans text-base font-normal text-muted">({g.books.length})</span>
+            </h2>
+            <div className="mt-6">
+              <BookGrid books={g.books} priorityCount={i === 0 ? 4 : 0} />
+            </div>
+          </section>
+        ))
+      ) : (
+        <section aria-labelledby="buku-penulis" className="mt-14">
+          <h2 id="buku-penulis" className="text-2xl font-semibold">
+            Buku {author.name}
+          </h2>
+          <p className="card mt-6 p-6 text-muted">Belum ada buku yang tayang.</p>
+        </section>
+      )}
 
       <JsonLd
         data={{

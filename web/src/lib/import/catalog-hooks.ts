@@ -7,7 +7,8 @@ import { ISSUES_KEY, SEMICOLON_CSV_MESSAGE, isIsoDate, splitKeys } from "./parse
  * Hook `import.hooks.before` per koleksi katalog. Berjalan sekali per batch, setelah
  * baris CSV/JSON diurai dan hook field (parse.ts) dijalankan.
  *
- * - Slug penulis/kategori/seri dan nama berkas Media diubah menjadi ID (satu kueri per koleksi).
+ * - Slug penulis/penyunting/penerjemah, kategori, seri, dan nama berkas Media diubah menjadi
+ *   ID (satu kueri per koleksi; ketiga peran orang sama-sama merujuk koleksi authors).
  * - Nilai yang sering rusak oleh Excel atau parser (harga, ISBN, angka bulat, tanggal,
  *   pilihan) diperiksa. Baris bermasalah diberi penanda ISSUES_KEY berisi pesan
  *   berbahasa Indonesia; hooks/rejectImportIssues menolaknya saat disimpan, termasuk
@@ -21,7 +22,8 @@ type Row = Record<string, unknown>;
 type RefCollection = "authors" | "categories" | "series" | "media";
 type IdMap = Map<string, number>;
 type RefSpec = { field: string; collection: RefCollection; label: string; many: boolean };
-type ExtraCheck = (out: Row, issues: string[]) => void;
+/** `row` = baris sebelum relasi diubah menjadi ID (untuk membedakan sel kosong dari slug yang tidak ditemukan). */
+type ExtraCheck = (out: Row, issues: string[], row: Row) => void;
 type CatalogSlug = "books" | "authors" | "categories" | "series";
 
 const DIGITS = /^\d+$/;
@@ -264,7 +266,20 @@ const isHttpUrl = (v: unknown) => {
   }
 };
 
-const booksChecks: ExtraCheck = (out, issues) => {
+/** Kolom ada di baris dan sengaja dikosongkan (bukan slug yang tidak ditemukan). */
+const explicitlyEmpty = (row: Row, field: string): boolean =>
+  row[field] !== undefined && splitKeys(row[field]).length === 0;
+
+const booksChecks: ExtraCheck = (out, issues, row) => {
+  // Peringatan dini; aturan sebenarnya ditegakkan saat tayang (validateAuthors), karena
+  // buku hasil impor berupa draf. Hanya bila KEDUA kolom ada dan sengaja dikosongkan:
+  // berkas lama tanpa kolom editors dan berkas mode Perbarui yang tidak memuat kolom
+  // itu tidak terpengaruh. Catatan: sel CSV kosong dibaca plugin sebagai "tidak diisi",
+  // jadi aturan ini terutama berlaku untuk JSON atau sel bertuliskan null.
+  if (explicitlyEmpty(row, "authors") && explicitlyEmpty(row, "editors")) {
+    issues.push("Isi minimal satu penulis (kolom authors) atau penyunting (kolom editors).");
+  }
+
   if (out.isbn13 !== undefined && out.isbn13 !== null) {
     const isbn = String(out.isbn13).trim();
     out.isbn13 = isbn;
@@ -366,7 +381,7 @@ const makeImportBefore =
       unknownColumnsCheck(row, fields, issues);
       statusCheck(out, issues);
       checkFieldShapes(out, fields, issues);
-      extra?.(out, issues);
+      extra?.(out, issues, row);
 
       if (issues.length) out[ISSUES_KEY] = issues;
       return out;
@@ -377,6 +392,8 @@ export const booksImportBefore = makeImportBefore(
   "books",
   [
     { field: "authors", collection: "authors", label: "Penulis", many: true },
+    { field: "editors", collection: "authors", label: "Penyunting", many: true },
+    { field: "translators", collection: "authors", label: "Penerjemah", many: true },
     { field: "categories", collection: "categories", label: "Kategori", many: true },
     { field: "series", collection: "series", label: "Seri", many: false },
     { field: "cover", collection: "media", label: "Sampul", many: false },

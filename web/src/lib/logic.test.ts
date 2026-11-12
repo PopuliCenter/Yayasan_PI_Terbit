@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { validateIsbn13 } from "../collections/Books";
+import { CONTRIBUTOR_REQUIRED, hasAuthorOrEditor, validateAuthors, validateIsbn13 } from "../collections/Books";
 import { formatRupiah } from "./format";
 import { normalize, tokenize, withinEditDistance } from "./fuzzy";
 import { rateKey } from "./ip";
@@ -63,6 +63,50 @@ describe("validateIsbn13", () => {
   });
 });
 
+describe("hasAuthorOrEditor (buku tayang: penulis atau penyunting)", () => {
+  it("penulis saja atau penyunting saja cukup", () => {
+    assert.equal(hasAuthorOrEditor([1], {}), true);
+    assert.equal(hasAuthorOrEditor([], { editors: [2] }), true);
+  });
+  it("keduanya kosong, atau hanya penerjemah, ditolak", () => {
+    assert.equal(hasAuthorOrEditor([], { editors: [] }), false);
+    assert.equal(hasAuthorOrEditor(null, {}), false);
+    assert.equal(hasAuthorOrEditor([], { translators: [3] }), false);
+  });
+  it("value undefined (simpan sebagian) memakai penulis tersimpan di siblingData", () => {
+    assert.equal(hasAuthorOrEditor(undefined, { authors: [1] }), true);
+    assert.equal(hasAuthorOrEditor(undefined, { editors: [2] }), true);
+    assert.equal(hasAuthorOrEditor(undefined, {}), false);
+  });
+  it("pesan menyebut penyunting", () => {
+    assert.match(CONTRIBUTOR_REQUIRED, /penyunting/);
+  });
+});
+
+describe("validateAuthors", () => {
+  // Cukup untuk validasi relasi bawaan Payload: tipe ID dan terjemahan pesan.
+  const options = (siblingData: Record<string, unknown>) =>
+    ({
+      event: "submit",
+      relationTo: "authors",
+      req: { payload: { collections: { authors: {} }, db: { defaultIDType: "number" } }, t: (k: string) => k },
+      siblingData,
+    }) as unknown as Parameters<typeof validateAuthors>[1];
+
+  it("lolos bila ada penulis atau penyunting", async () => {
+    assert.equal(await validateAuthors([1], options({ authors: [1] })), true);
+    assert.equal(await validateAuthors([], options({ authors: [], editors: [2] })), true);
+  });
+  it("menolak buku tanpa penulis dan penyunting dengan pesan berbahasa Indonesia", async () => {
+    assert.equal(await validateAuthors([], options({ authors: [], editors: [] })), CONTRIBUTOR_REQUIRED);
+  });
+  it("tetap menjalankan validasi relasi bawaan (ID tidak sah)", async () => {
+    const result = await validateAuthors(["bukan-id"] as unknown as number[], options({ editors: [2] }));
+    assert.equal(typeof result, "string");
+    assert.notEqual(result, CONTRIBUTOR_REQUIRED);
+  });
+});
+
 describe("pesan WhatsApp", () => {
   const book = {
     title: "Membaca Suara Pemilih",
@@ -75,6 +119,16 @@ describe("pesan WhatsApp", () => {
   it("mengisi penanda dan membiarkan penanda tak dikenal", () => {
     const msg = buildWaMessage("{judul} | {penulis} | {harga} | {isbn} | {url} | {lain}", book, "https://contoh.test/buku/x");
     assert.equal(msg, "Membaca Suara Pemilih | Sekar Ayuningtyas | Rp98.000 | 978-623-9999-01-8 | https://contoh.test/buku/x | {lain}");
+  });
+  it("{penulis} buku suntingan: penyunting dengan nama lengkap", () => {
+    const edited = { ...book, authors: [], editors: [{ name: "Ratna Wulandari" }, { name: "Hendra Gunawan" }] } as unknown as Parameters<
+      typeof buildWaMessage
+    >[1];
+    assert.equal(buildWaMessage("{penulis}", edited, "x"), "penyunting Ratna Wulandari dan Hendra Gunawan");
+  });
+  it("{penulis} tanpa kontributor: -", () => {
+    const none = { ...book, authors: [] } as unknown as Parameters<typeof buildWaMessage>[1];
+    assert.equal(buildWaMessage("{penulis}", none, "x"), "-");
   });
   it("waUrl membuang karakter non-angka dan meng-encode pesan", () => {
     assert.equal(waUrl("+62 812-3456", "a b&c"), "https://wa.me/628123456?text=a%20b%26c");

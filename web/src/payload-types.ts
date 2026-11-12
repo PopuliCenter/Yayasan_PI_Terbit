@@ -183,7 +183,18 @@ export interface Book {
   id: number;
   title: string;
   subtitle?: string | null;
-  authors: (number | Author)[];
+  /**
+   * Seret untuk mengubah urutan. Boleh kosong untuk buku suntingan (bunga rampai) yang mencantumkan penyunting.
+   */
+  authors?: (number | Author)[] | null;
+  /**
+   * Untuk buku suntingan. Orangnya dipilih dari daftar Penulis.
+   */
+  editors?: (number | Author)[] | null;
+  /**
+   * Untuk buku terjemahan. Orangnya dipilih dari daftar Penulis.
+   */
+  translators?: (number | Author)[] | null;
   /**
    * Boleh dengan atau tanpa tanda hubung. Pencarian menemukan keduanya.
    */
@@ -299,6 +310,8 @@ export interface Book {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Satu entri per orang: penulis, penyunting, atau penerjemah. Perannya ditentukan di setiap buku.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "authors".
  */
@@ -1342,6 +1355,8 @@ export interface BooksSelect<T extends boolean = true> {
   title?: T;
   subtitle?: T;
   authors?: T;
+  editors?: T;
+  translators?: T;
   isbn13?: T;
   publishedYear?: T;
   pageCount?: T;
