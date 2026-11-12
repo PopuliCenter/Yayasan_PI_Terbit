@@ -19,6 +19,7 @@ import {
   MAX_DESKTOP_NAV,
   MAX_DESKTOP_NAV_CHARS,
 } from "../lib/appearance/defaults";
+import { DEFAULT_FONTS, FOLLOW_BODY, FONT_KEYS, fontOptionLabel, resolveFonts, type FontKey } from "../lib/appearance/fonts";
 import { PRESETS } from "../lib/appearance/presets";
 import { checkAccent } from "../lib/appearance/theme";
 import { linkTargetsPath, type LinkInput } from "../lib/links";
@@ -117,26 +118,50 @@ const endsAfterStart: DateFieldValidation = (value, options) => {
 
 const DATE_ADMIN = { pickerAppearance: "dayAndTime", displayFormat: "d MMM yyyy HH.mm" } as const;
 
-type StoredTheme = { preset?: unknown; customAccent?: unknown; accentLight?: unknown; accentDark?: unknown };
+type StoredTheme = {
+  preset?: unknown;
+  customAccent?: unknown;
+  accentLight?: unknown;
+  accentDark?: unknown;
+  headingFont?: unknown;
+  bodyFont?: unknown;
+  headerFont?: unknown;
+  footerFont?: unknown;
+};
 
-/** Kunci pembanding grup `theme` yang tersimpan. Penulisan hex beda huruf/spasi dianggap sama. */
-const themeKey = (doc: unknown): string => {
+/**
+ * Kunci pembanding grup `theme` yang tersimpan. Penulisan hex beda huruf/spasi dianggap sama.
+ * Huruf dibandingkan setelah dinormalkan resolveFonts: kosong/null (versi sebelum ada pilihan
+ * huruf) sama dengan bawaan, dan "ikut isi" tetap dibedakan dari memilih huruf yang sama.
+ */
+export const themeKey = (doc: unknown): string => {
   const t = (doc as { theme?: StoredTheme | null } | null | undefined)?.theme;
   const hex = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim().toLowerCase() : null);
+  const f = resolveFonts(t);
   return JSON.stringify([
     typeof t?.preset === "string" ? t.preset : null,
     t?.customAccent === true,
     hex(t?.accentLight),
     hex(t?.accentDark),
+    f.heading,
+    f.body,
+    f.headerFollowsBody ? FOLLOW_BODY : f.header,
+    f.footerFollowsBody ? FOLLOW_BODY : f.footer,
   ]);
 };
+
+/** Pilihan huruf dari registri, mis. "Lora — serif"; huruf bawaan peran ditandai. */
+const fontOptions = (defaultKey?: FontKey) =>
+  FONT_KEYS.map((key) => ({ value: key, label: key === defaultKey ? `${fontOptionLabel(key)} (bawaan)` : fontOptionLabel(key) }));
+
+const regionFontOptions = [{ value: FOLLOW_BODY, label: "Sama dengan huruf isi (bawaan)" }, ...fontOptions()];
 
 /**
  * "Pulihkan versi" menulis versi lama apa adanya ke DB tanpa menjalankan access level field
  * (payload/dist/globals/operations/restoreVersion.js), sehingga `theme.access.update` tidak
- * berlaku di sana. Selain super admin, pemulihan hanya diizinkan bila warnanya sama persis dengan
- * versi terbaru. Jadi admin katalog tetap bisa memulihkan menu, footer, dan pengumuman, tetapi
- * tidak bisa mengganti warna situs lewat riwayat versi.
+ * berlaku di sana. Selain super admin, pemulihan hanya diizinkan bila warna dan hurufnya sama
+ * persis dengan versi terbaru. Jadi admin katalog tetap bisa memulihkan menu, footer, dan
+ * pengumuman, tetapi tidak bisa mengganti warna atau huruf situs lewat riwayat versi.
  */
 const guardThemeOnRestore: GlobalBeforeOperationHook = async ({ args, global, operation, overrideAccess, req }) => {
   if (operation !== "restoreVersion" || overrideAccess === true) return args;
@@ -157,7 +182,7 @@ const guardThemeOnRestore: GlobalBeforeOperationHook = async ({ args, global, op
   const current = await req.payload.findGlobal({ slug: global.slug, depth: 0, draft: true, overrideAccess: true, req });
   if (themeKey(target.version) !== themeKey(current)) {
     throw new APIError(
-      "Versi ini memakai warna situs yang berbeda dari versi terbaru. Hanya super admin yang dapat memulihkannya.",
+      "Versi ini memakai warna atau huruf situs yang berbeda dari versi terbaru. Hanya super admin yang dapat memulihkannya.",
       403,
       null,
       true,
@@ -172,7 +197,7 @@ export const Appearance: GlobalConfig = {
   admin: {
     group: "Tampilan situs",
     description:
-      "Warna, menu atas, footer, dan pengumuman situs. Perubahan tersimpan sebagai draf; pengunjung melihatnya setelah Anda menekan Tayangkan.",
+      "Warna, huruf, menu atas, footer, dan pengumuman situs. Perubahan tersimpan sebagai draf; pengunjung melihatnya setelah Anda menekan Tayangkan.",
     hideAPIURL: true,
     // Admin order tidak mengurus tampilan; global disembunyikan dari menunya.
     hidden: ({ user }) => (user as { role?: string } | null)?.role === "admin-order",
@@ -204,9 +229,9 @@ export const Appearance: GlobalConfig = {
       type: "tabs",
       tabs: [
         {
-          label: "Warna",
+          label: "Warna & huruf",
           description:
-            "Palet di sini sudah diuji keterbacaannya di mode terang dan gelap. Hanya super admin yang dapat mengubah warna.",
+            "Palet di sini sudah diuji keterbacaannya di mode terang dan gelap. Hanya super admin yang dapat mengubah warna dan huruf.",
           fields: [
             {
               name: "theme",
@@ -257,6 +282,72 @@ export const Appearance: GlobalConfig = {
                         description: "Kosongkan agar dihitung otomatis dari warna mode terang.",
                       },
                       validate: accentValidator("dark", true),
+                    },
+                  ],
+                },
+                {
+                  // Presentasional: kolom DB tetap theme_heading_font, dst.
+                  type: "collapsible",
+                  label: "Huruf",
+                  admin: {
+                    description:
+                      "Huruf bawaan dimuat paling awal. Huruf lain dimuat saat dibutuhkan, jadi pada kunjungan pertama teks bisa sesaat tampil dengan huruf cadangan.",
+                  },
+                  fields: [
+                    {
+                      type: "row",
+                      fields: [
+                        {
+                          name: "headingFont",
+                          type: "select",
+                          label: "Huruf judul",
+                          required: true,
+                          defaultValue: DEFAULT_FONTS.headingFont,
+                          options: fontOptions(DEFAULT_FONTS.headingFont),
+                          admin: {
+                            isClearable: false,
+                            description: "Judul halaman dan buku, nama yayasan di header, label miring, dan kutipan.",
+                          },
+                        },
+                        {
+                          name: "bodyFont",
+                          type: "select",
+                          label: "Huruf isi",
+                          required: true,
+                          defaultValue: DEFAULT_FONTS.bodyFont,
+                          options: fontOptions(DEFAULT_FONTS.bodyFont),
+                          admin: { isClearable: false, description: "Teks isi, tombol, dan formulir." },
+                        },
+                      ],
+                    },
+                    {
+                      type: "row",
+                      fields: [
+                        {
+                          name: "headerFont",
+                          type: "select",
+                          label: "Huruf menu atas (header)",
+                          required: true,
+                          defaultValue: DEFAULT_FONTS.headerFont,
+                          options: regionFontOptions,
+                          admin: {
+                            isClearable: false,
+                            description: "Menu, tombol, dan pencarian di header. Nama yayasan tetap memakai huruf judul.",
+                          },
+                        },
+                        {
+                          name: "footerFont",
+                          type: "select",
+                          label: "Huruf footer",
+                          required: true,
+                          defaultValue: DEFAULT_FONTS.footerFont,
+                          options: regionFontOptions,
+                          admin: {
+                            isClearable: false,
+                            description: "Teks dan judul kolom footer. Nama situs tetap memakai huruf judul.",
+                          },
+                        },
+                      ],
                     },
                   ],
                 },

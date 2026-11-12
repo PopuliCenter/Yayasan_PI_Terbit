@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { contrastRatio, isHex, type Hex } from "./color";
+import { resolveFonts } from "./fonts";
 import { DEFAULT_PRESET, PRESETS, THEMABLE_KEYS, type TokenMap } from "./presets";
 import { buildThemeCss, checkAccent, deriveAccent, resolveTheme } from "./theme";
 
@@ -175,5 +176,27 @@ describe("CSS tema", () => {
   it("buildThemeCss membuang nilai yang bukan hex", () => {
     const bad = { ...PRESETS.navy.light, ink: "red}</style><script>" } as unknown as TokenMap;
     assert.ok(!buildThemeCss(bad, PRESETS.navy.dark).includes("<"));
+  });
+});
+
+describe("CSS tema dengan huruf", () => {
+  it("huruf saja dengan palet bawaan -> hanya blok huruf, tanpa blok warna", () => {
+    const r = resolveTheme({ headingFont: "lora" });
+    assert.equal(r.css, ":root{--font-judul:var(--font-lora), Georgia, Cambria, serif}");
+    assert.equal(r.fonts.heading, "lora");
+  });
+
+  it("palet lain + huruf -> blok warna lalu blok huruf", () => {
+    const r = resolveTheme({ preset: "hijau", bodyFont: "literata" });
+    const colors = buildThemeCss(PRESETS.hijau.light, PRESETS.hijau.dark);
+    const fonts = resolveFonts({ bodyFont: "literata" }).css;
+    assert.equal(r.css, colors + fonts);
+    assert.ok(r.css.endsWith(":root{--font-isi:var(--font-literata), Georgia, Cambria, serif}"));
+  });
+
+  it("huruf tidak dikenal tidak menambah apa pun pada CSS warna", () => {
+    assert.equal(resolveTheme({ headingFont: "comic-sans", bodyFont: "x}</style>" }).css, "");
+    const colorsOnly = resolveTheme({ preset: "marun" }).css;
+    assert.equal(resolveTheme({ preset: "marun", headerFont: "ikut-isi", footerFont: 7 }).css, colorsOnly);
   });
 });

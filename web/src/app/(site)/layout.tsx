@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Source_Serif_4 } from "next/font/google";
+import { ALL_FONT_VARIABLE_CLASSES, fontVariableClasses } from "@/app/fonts";
 import { JsonLd } from "@/components/JsonLd";
 import { PreviewBar } from "@/components/PreviewBar";
 import { SiteAnnouncement } from "@/components/SiteAnnouncement";
@@ -20,9 +20,6 @@ import "./globals.css";
  * Lapisan cache dipasang di Cloudflare saat deploy bila trafik membutuhkannya.
  */
 export const dynamic = "force-dynamic";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const serif = Source_Serif_4({ subsets: ["latin"], variable: "--font-source-serif", display: "swap" });
 
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
@@ -74,9 +71,14 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
       ? { ...appearance.announcement, link: previewLink(appearance.announcement.link) }
       : appearance.announcement;
 
+  // Kelas variabel next/font harus di <html> (= :root, tempat peran huruf dideklarasikan).
+  // Pratinjau memasang semua huruf agar PreviewBar bisa menukar huruf tanpa memuat ulang;
+  // di luar pratinjau hanya huruf yang dipakai (bawaan: Inter + Source Serif 4, sama seperti dulu).
+  const fontClasses = preview ? ALL_FONT_VARIABLE_CLASSES : fontVariableClasses(appearance.theme.fonts.used);
+
   return (
     // suppressHydrationWarning: skrip tema mengubah data-theme pada <html> sebelum React aktif.
-    <html lang="id" className={`${inter.variable} ${serif.variable}`} suppressHydrationWarning>
+    <html lang="id" className={fontClasses} suppressHydrationWarning>
       <head>
         {/*
           Skrip sinkron biasa, bukan next/script: beforeInteractive di App Router hanya
@@ -87,10 +89,11 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         {/*
-          Tema warna dari global Tampilan. CSS-nya hanya dari pembuat yang menyaring
-          (lib/appearance/theme.ts: kunci tetap + hex tervalidasi), bukan teks admin. Palet
-          navy bawaan menghasilkan "" sehingga tag ini tidak dirender dan HTML tetap sama.
-          Saat pratinjau tag selalu ada, agar PreviewBar bisa menukar isinya seketika.
+          Tema warna dan huruf dari global Tampilan. CSS-nya hanya dari pembuat yang menyaring
+          (lib/appearance/theme.ts: kunci tetap + hex tervalidasi; lib/appearance/fonts.ts: huruf
+          dari registri), bukan teks admin. Palet navy dan huruf bawaan menghasilkan "" sehingga
+          tag ini tidak dirender dan HTML tetap sama. Saat pratinjau tag selalu ada, agar
+          PreviewBar bisa menukar isinya seketika.
         */}
         {appearance.theme.css !== "" || appearance.preview ? (
           <style id={THEME_STYLE_ID} dangerouslySetInnerHTML={{ __html: appearance.theme.css }} />

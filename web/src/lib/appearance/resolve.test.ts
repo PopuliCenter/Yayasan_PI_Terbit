@@ -42,6 +42,7 @@ describe("resolveAppearance", () => {
       assert.deepEqual(r.footer.links.map((l) => [l.label, l.href]), [["Pembelian institusi", "/institusi"]]);
       assert.equal(r.footer.infoTitle, "Informasi");
       assert.equal(r.theme.css, "");
+      assert.deepEqual(r.theme.fonts.used, ["inter", "source-serif-4"]);
       assert.equal(r.announcement, null);
       assert.equal(r.showWhatsAppButton, true);
     }
@@ -62,6 +63,7 @@ describe("resolveAppearance", () => {
       assert.equal(r.footer.links[0]?.href, "/institusi");
       assert.equal(r.announcement, null);
       assert.equal(r.theme.css, "");
+      assert.deepEqual(r.theme.fonts.used, ["inter", "source-serif-4"]);
     }
   });
 
@@ -80,6 +82,12 @@ describe("resolveAppearance", () => {
       assert.equal(r.announcement?.text, "Libur");
       assert.equal(r.announcement?.link, null);
     }
+  });
+
+  it("huruf pilihan admin ikut ke tema", () => {
+    const r = resolveAppearance({ theme: { headingFont: "merriweather", footerFont: "public-sans" } }, NOW);
+    assert.deepEqual(r.theme.fonts.used, ["inter", "public-sans", "merriweather"]);
+    assert.match(r.theme.css, /^:root\{--font-judul:var\(--font-merriweather\)[^}]*;--font-footer:var\(--font-public-sans\)[^}]*\}$/);
   });
 
   it("footer tanpa tautan tambahan bila admin mengosongkannya", () => {

@@ -24,7 +24,9 @@ export function SiteFooter({ settings, footerPages, footer = DEFAULT_FOOTER, for
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-24 border-t border-line bg-paper-2">
+    // font-footer: huruf footer dari global Tampilan (bawaan = huruf isi). Judul kolom memakai
+    // font-footer juga, bukan font-sans, agar ikut pilihan itu; nama situs tetap huruf judul.
+    <footer className="mt-24 border-t border-line bg-paper-2 font-footer">
       <div className="page-container grid gap-10 py-14 md:grid-cols-2 lg:grid-cols-12">
         <section className="lg:col-span-4" aria-labelledby="footer-identitas">
           <Logo className="h-9 w-auto text-ink" />
@@ -60,7 +62,7 @@ export function SiteFooter({ settings, footerPages, footer = DEFAULT_FOOTER, for
         </section>
 
         <section className="lg:col-span-3" aria-labelledby="footer-kontak">
-          <h2 id="footer-kontak" className="font-sans text-sm font-semibold text-ink">
+          <h2 id="footer-kontak" className="font-footer text-sm font-semibold text-ink">
             Layanan pembaca
           </h2>
           <ul className="mt-4 space-y-2 text-sm">
@@ -93,7 +95,7 @@ export function SiteFooter({ settings, footerPages, footer = DEFAULT_FOOTER, for
 
           {settings.marketplaceStores.length > 0 ? (
             <>
-              <h3 className="mt-8 font-sans text-sm font-semibold text-ink">Toko resmi</h3>
+              <h3 className="mt-8 font-footer text-sm font-semibold text-ink">Toko resmi</h3>
               <ul className="mt-2 flex flex-wrap gap-x-5 text-sm">
                 {settings.marketplaceStores.map((m) => (
                   <li key={m.url}>
@@ -113,7 +115,7 @@ export function SiteFooter({ settings, footerPages, footer = DEFAULT_FOOTER, for
         </section>
 
         <nav className="lg:col-span-2" aria-labelledby="footer-info">
-          <h2 id="footer-info" className="font-sans text-sm font-semibold text-ink">
+          <h2 id="footer-info" className="font-footer text-sm font-semibold text-ink">
             {footer.infoTitle}
           </h2>
           <ul className="mt-4 space-y-2 text-sm">
@@ -136,7 +138,7 @@ export function SiteFooter({ settings, footerPages, footer = DEFAULT_FOOTER, for
 
         {footer.showNewsletter ? (
           <section className="lg:col-span-3" aria-labelledby="footer-kabar">
-            <h2 id="footer-kabar" className="font-sans text-sm font-semibold text-ink">
+            <h2 id="footer-kabar" className="font-footer text-sm font-semibold text-ink">
               Kabar terbitan baru
             </h2>
             <p className="mt-3 text-sm">Satu email saat ada buku baru. Tanpa promosi berlebihan.</p>

@@ -11,8 +11,11 @@
  *   menimpa mode gelap (sudah dibuktikan di Chromium). Di dalam blok tanpa layer, selektor gelap
  *   (spesifisitas 0,2,0) menang atas :root (0,1,0) saat data-theme="dark".
  * - Palet bawaan tanpa aksen kustom menghasilkan string kosong: HTML identik dengan sebelum fitur ini.
+ * - Huruf (fonts.ts) ikut di string yang sama, sesudah blok warna. Huruf tidak bergantung mode,
+ *   jadi cukup satu blok :root tanpa pasangan gelap. Semua huruf bawaan juga menghasilkan "".
  */
 import { hexToOklch, isHex, normalizeHex, minContrast, nearestPassing, oklchToHex, type Hex } from "./color";
+import { resolveFonts, type ResolvedFonts } from "./fonts";
 import {
   DARK_BACKGROUNDS,
   DEFAULT_PRESET,
@@ -35,6 +38,10 @@ export type ThemeInput = {
   customAccent?: unknown;
   accentLight?: unknown;
   accentDark?: unknown;
+  headingFont?: unknown;
+  bodyFont?: unknown;
+  headerFont?: unknown;
+  footerFont?: unknown;
 } | null | undefined;
 
 export type AccentCheck =
@@ -127,7 +134,8 @@ export type ResolvedTheme = {
   customAccentApplied: boolean;
   light: TokenMap;
   dark: TokenMap;
-  /** Blok CSS siap suntik; "" untuk palet bawaan tanpa aksen kustom. */
+  fonts: ResolvedFonts;
+  /** Blok CSS siap suntik (warna lalu huruf); "" untuk palet dan huruf bawaan tanpa aksen kustom. */
   css: string;
 };
 
@@ -151,5 +159,13 @@ export const resolveTheme = (input: ThemeInput): ResolvedTheme => {
   const light: TokenMap = accent ? { ...base.light, ...accent.light } : base.light;
   const dark: TokenMap = accent ? { ...base.dark, ...accent.dark } : base.dark;
   const isDefault = preset === DEFAULT_PRESET && !accent;
-  return { preset, customAccentApplied: Boolean(accent), light, dark, css: isDefault ? "" : buildThemeCss(light, dark) };
+  const fonts = resolveFonts(input);
+  return {
+    preset,
+    customAccentApplied: Boolean(accent),
+    light,
+    dark,
+    fonts,
+    css: (isDefault ? "" : buildThemeCss(light, dark)) + fonts.css,
+  };
 };

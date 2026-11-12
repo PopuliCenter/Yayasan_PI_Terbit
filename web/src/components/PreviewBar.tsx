@@ -38,9 +38,11 @@ const appearanceThemeFrom = (event: MessageEvent): { theme: ThemeInput } | null 
  *   muat ulang berputar tanpa henti. Refresh saat terpasang juga tidak perlu: halaman baru
  *   dirender server dengan draf terbaru, dan panel admin sendiri mengirim satu
  *   document-event saat menerima `ready` pertama.
- * - Mengubah warna di global Tampilan -> CSS tema ditukar seketika tanpa menyimpan. Hanya
- *   `theme` dari pesan origin yang sama yang dipakai, dan CSS-nya dibuat ulang oleh
- *   resolveTheme (kunci tetap + hex tervalidasi), jadi data pesan tidak pernah masuk mentah.
+ * - Mengubah warna atau huruf di global Tampilan -> CSS tema ditukar seketika tanpa menyimpan.
+ *   Hanya `theme` dari pesan origin yang sama yang dipakai, dan CSS-nya dibuat ulang oleh
+ *   resolveTheme (kunci tetap + hex tervalidasi + huruf dari registri), jadi data pesan tidak
+ *   pernah masuk mentah. Huruf langsung berganti karena saat pratinjau layout memasang kelas
+ *   variabel SEMUA huruf di <html> (app/fonts.ts); berkas hurufnya baru diunduh saat dipakai.
  * - Di luar iframe (tab biasa): tautan kembali ke panel admin dan tombol keluar pratinjau.
  */
 export function PreviewBar() {
