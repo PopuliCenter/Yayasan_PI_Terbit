@@ -1,5 +1,5 @@
 import { BlocksFeature, lexicalEditor } from "@payloadcms/richtext-lexical";
-import type { CollectionConfig, Field, FieldHook, TextField } from "payload";
+import type { CollectionBeforeChangeHook, CollectionConfig, Field, FieldHook, TextField } from "payload";
 import { isKatalog, publishedOrAdmin } from "../access";
 import { FormulirBlock } from "../blocks/Formulir";
 import { seoMetaGroup } from "../fields/seo";
@@ -43,6 +43,20 @@ const followTitleUntilLive: FieldHook = async ({ collection, data, operation, or
   return live && "_status" in live && live._status === "published" ? value : nextAuto;
 };
 
+/**
+ * Halaman kebijakan (punya versi dokumen) yang ditayangkan tanpa tanggal "Berlaku sejak"
+ * mendapat tanggal hari itu, agar tanggal berlaku tidak mendahului tanggal tayang.
+ * Tanggal yang diisi admin tidak diubah.
+ */
+export const isiTanggalBerlaku: CollectionBeforeChangeHook = ({ data, originalDoc }) => {
+  if (data?._status !== "published") return data;
+  // Data parsial (Local API) tidak membawa semua kolom: ambil dari versi terakhir.
+  const versi = data.policyVersion ?? originalDoc?.policyVersion;
+  const tanggal = "policyEffectiveDate" in data ? data.policyEffectiveDate : originalDoc?.policyEffectiveDate;
+  if (versi && !tanggal) return { ...data, policyEffectiveDate: new Date().toISOString() };
+  return data;
+};
+
 /** slugField() untuk koleksi berautosave (Pages, Posts): slug ikut judul sampai tayang pertama. */
 export const autosaveSlugField = (): Field => {
   const field = slugField() as TextField;
@@ -64,7 +78,7 @@ export const Pages: CollectionConfig = {
     listSearchableFields: ["title", "slug", "summary"],
     group: "Konten",
     description:
-      "Halaman statis: Tentang, Cara Pesan, Kebijakan Privasi, Ketentuan Penggunaan, Kirim Naskah.",
+      "Halaman statis: Tentang Kami, Cara Pesan, Pengiriman, Pengembalian & Penukaran, Kebijakan Privasi, Syarat & Ketentuan, Kirim Naskah.",
     preview: ({ id, slug }) =>
       previewPath({
         collection: "pages",
@@ -81,6 +95,7 @@ export const Pages: CollectionConfig = {
   },
   defaultSort: "footerOrder",
   versions: { drafts: { autosave: { interval: 1500 } }, maxPerDoc: 50 },
+  hooks: { beforeChange: [isiTanggalBerlaku] },
   access: {
     read: publishedOrAdmin,
     create: isKatalog,

@@ -332,6 +332,24 @@ Urutan: staging dulu, lalu produksi dengan SHA yang sama, lewat alur §9 apa ada
 
 ---
 
+### 9b. Konten resmi: halaman kebijakan dan formulir retur
+
+`npm run isi-konten` mengisi konten resmi yayasan: halaman Tentang Kami, Cara Pesan, Pengiriman, Pengembalian & Penukaran, Kebijakan Privasi, Syarat & Ketentuan, dan Kirim Naskah; formulir "Pengajuan penukaran atau pengembalian"; serta isian Pengaturan yang sudah pasti (email penerbit, badan hukum, alamat kantor, NIB, kontak Ditjen PKTN). Teksnya ada di `web/src/seed/konten/halaman.ts`; seed staging memakai sumber yang sama.
+
+```bash
+cd "$S" && docker compose run --rm migrate npm run --silent isi-konten
+# Staging yang halamannya masih teks seed lama: timpa sebagai draf baru
+cd "$S" && docker compose run --rm -e ISI_KONTEN_TIMPA=1 migrate npm run --silent isi-konten
+```
+
+- **Halaman tidak langsung tayang.** Halaman baru dibuat sebagai draf; halaman yang sudah ada dilewati, kecuali `ISI_KONTEN_TIMPA=1` (ditimpa sebagai draf baru, versi lama tetap di riwayat *Versi*). Tinjau tiap halaman di admin dengan Pratinjau, lalu **Tayangkan**. Tanggal "Berlaku sejak" halaman kebijakan dikosongkan di draf dan terisi otomatis dengan tanggal saat ditayangkan (bisa diubah admin).
+- Yang langsung berlaku: isian Pengaturan yang masih kosong/placeholder, dan formulir retur (terbuka, tetapi baru terlihat pengunjung setelah halaman Pengembalian & Penukaran tayang).
+- Pengaturan hanya diisi pada kolom yang kosong atau masih placeholder seed (termasuk Email redaksi `redaksi@<DOMAIN_TOKO>`); isian yang sudah diubah admin tidak ditimpa. Formulir yang sudah ada **tidak pernah diubah** skrip: perbaikan teks formulir pada rilis berikutnya dilakukan di admin (Konten → Formulir).
+- Log akhir menyebut isian yang masih perlu diisi sendiri (nomor WhatsApp, penanggung jawab, jam layanan, rekening).
+- Aman dijalankan ulang. Slug lama `ketentuan-penggunaan` diganti `syarat-ketentuan` lewat draf; saat drafnya ditayangkan, pengalihan 308 dari alamat lama dibuat otomatis.
+- Toko marketplace resmi belum ada: teks halaman menyebut marketplace secara bersyarat ("bila sudah tersedia"), dan tautan toko contoh dari seed (beranda Tokopedia/Shopee) dihapus dari Pengaturan. Saat toko dibuka: isi tab *Marketplace & media sosial* di Pengaturan (tautan toko di footer dan Cara Pesan), dan isi *Tautan marketplace* di tiap buku (tombol "beli di" di halaman buku).
+- Rilis yang membawa skrip ini juga membawa migrasi `20261112_091708_teks_beranda_dan_email_redaksi`: menambah kolom `settings.editorial_email` (Email redaksi) dan mengganti nilai bawaan teks Beranda. **App baru membaca kolom itu di setiap halaman**, jadi migrasi wajib selesai sebelum app di-recreate: ikuti urutan §9 apa adanya (backup → migrate → app), lalu cek `migrate:status` (semua `Yes`). Teks Beranda yang **sudah tersimpan** tidak diubah: bila pengantar Pembuka atau catatan Cara memesan masih menyebut marketplace, ubah di admin (Beranda).
+
 ## 10. Backup (panduan §11, disesuaikan)
 
 Pemasangan sama dengan panduan §11.2–§11.3 (kunci `age` di laptop, `recipients.txt`, `rclone`, `/root/.config/toko-backup/toko-buku.env`, cron). `scripts/backup.sh` mencadangkan DB dan volume `FILES_VOLUME` (sampul + bukti transfer), mengenkripsi dengan `age`, mengirim offsite, dan mengirim heartbeat; bila gagal, `ALERT_URL` dipanggil.
@@ -386,6 +404,8 @@ Ganti/abaikan butir berikut; butir lain berlaku apa adanya.
 - Tambahan: `robots.txt` produksi berisi `Sitemap:`; staging `Disallow: /` + header `X-Robots-Tag: noindex`.
 - Tambahan: data contoh (seed) **tidak** pernah dijalankan di produksi; buku contoh bertanda "DATA CONTOH" sudah dihapus dari staging sebelum demo ke publik.
 - Tambahan (PRD bagian 10): halaman hukum ditinjau konsultan; PSE/PMSE jelas sebelum DNS apex dibuat.
+- Tambahan: `npm run isi-konten` sudah dijalankan di produksi (§9b), ketujuh halaman resmi sudah ditinjau dan **Tayang**, dan isian yang dilaporkan "masih perlu diisi" sudah dilengkapi di Pengaturan Situs.
+- Tambahan: email `penerbit@<DOMAIN_TOKO>` benar-benar menerima surat (record MX ada, mis. Cloudflare Email Routing), karena alamat ini dipakai di semua halaman kebijakan.
 
 ---
 

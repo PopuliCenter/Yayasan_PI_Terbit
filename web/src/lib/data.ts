@@ -52,6 +52,8 @@ export type PublicSettings = {
   registeredInfo: string | null;
   waNumber: string | null;
   email: string | null;
+  /** Alamat pengiriman naskah; kosong berarti pakai `email`. */
+  editorialEmail: string | null;
   phone: string | null;
   serviceHours: string | null;
   waResponseTarget: string | null;
@@ -92,6 +94,7 @@ export const getSettings = cache(async (): Promise<PublicSettings> => {
     registeredInfo: s.registeredInfo ?? null,
     waNumber: s.waNumber ?? null,
     email: s.email ?? null,
+    editorialEmail: s.editorialEmail ?? null,
     phone: s.phone ?? null,
     serviceHours: s.serviceHours ?? null,
     waResponseTarget: s.waResponseTarget ?? null,

@@ -26,7 +26,8 @@ export const BLOCK_LABELS = {
 
 export const DEFAULT_HERO_HEADING = "Buku kajian politik, demokrasi, dan kebijakan publik.";
 
-export const DEFAULT_HERO_INTRO = `${IDENTITY_SENTENCE} Situs ini adalah katalog resmi terbitan kami: pilih judul, lalu pesan lewat WhatsApp atau toko resmi kami di marketplace.`;
+// Marketplace belum ada (toko resmi menyusul): teks bawaan hanya menyebut WhatsApp.
+export const DEFAULT_HERO_INTRO = `${IDENTITY_SENTENCE} Situs ini adalah katalog resmi terbitan kami: pilih judul, lalu pesan lewat WhatsApp.`;
 
 export const DEFAULT_SEARCH_PLACEHOLDER = "Judul, penulis, atau ISBN";
 
@@ -59,7 +60,7 @@ export const DEFAULT_ORDER_STEPS: readonly { title: string; body: string }[] = [
 export const DEFAULT_ORDER = {
   heading: "Cara memesan",
   intro: "Situs ini tidak memakai keranjang belanja. Setiap pesanan dilayani langsung oleh admin kami.",
-  note: "Lebih suka belanja di marketplace? Setiap halaman buku juga menautkan ke toko resmi kami.",
+  note: "Pembayaran hanya ke rekening atas nama Yayasan Populi Indonesia. Kami tidak pernah meminta transfer ke rekening pribadi.",
   linkLabel: "Selengkapnya",
   linkUrl: "/cara-pesan",
 } as const;

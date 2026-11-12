@@ -133,6 +133,15 @@ export const Settings: GlobalConfig = {
               ],
             },
             {
+              name: "editorialEmail",
+              type: "email",
+              label: "Email redaksi (naskah)",
+              admin: {
+                description:
+                  "Opsional. Tampil di halaman Kontak dan Kirim Naskah sebagai alamat pengiriman naskah. Kosong: dipakai email layanan pelanggan. Isi hanya setelah alamatnya aktif menerima email (mis. sudah dibuat di Cloudflare Email Routing).",
+              },
+            },
+            {
               type: "row",
               fields: [
                 {

@@ -221,7 +221,7 @@ describe("resolveIntro", () => {
   it("bawaan sama dengan teks beranda lama", () => {
     assert.equal(
       resolveIntro(null, NAME),
-      `${NAME} menerbitkan buku untuk pembaca umum. Situs ini adalah katalog resmi terbitan kami: pilih judul, lalu pesan lewat WhatsApp atau toko resmi kami di marketplace.`,
+      `${NAME} menerbitkan buku untuk pembaca umum. Situs ini adalah katalog resmi terbitan kami: pilih judul, lalu pesan lewat WhatsApp.`,
     );
   });
 });

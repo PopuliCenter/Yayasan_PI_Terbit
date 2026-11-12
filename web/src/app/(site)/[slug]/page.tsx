@@ -1,6 +1,7 @@
 import type { DefaultNodeTypes, SerializedBlockNode } from "@payloadcms/richtext-lexical";
 import type { JSXConvertersFunction } from "@payloadcms/richtext-lexical/react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { FormulirSection } from "@/components/forms/FormulirSection";
 import { WhatsAppIcon } from "@/components/Icons";
@@ -77,6 +78,37 @@ function IdentityBlock({ s }: { s: PublicSettings }) {
   );
 }
 
+/**
+ * Alamat pengiriman naskah di halaman Kirim Naskah, dari Pengaturan: email redaksi bila
+ * diisi, selain itu email layanan pelanggan.
+ */
+function ManuscriptContactBlock({ s }: { s: PublicSettings }) {
+  const email = s.editorialEmail || s.email;
+  return (
+    <section aria-labelledby="kirim-naskah-alamat" className="mt-12 rounded-lg border border-line bg-paper-2 p-5 sm:p-6">
+      <h2 id="kirim-naskah-alamat" className="text-xl font-semibold">
+        Alamat pengiriman naskah
+      </h2>
+      <ul className="mt-3 space-y-2 text-[0.95rem]">
+        {email ? (
+          <li>
+            Email:{" "}
+            <a href={`mailto:${email}`} className="link">
+              {email}
+            </a>
+          </li>
+        ) : null}
+        <li>
+          Formulir:{" "}
+          <Link href="/kontak?jenis=naskah" className="link">
+            Kontak, jenis pesan Kirim naskah
+          </Link>
+        </li>
+      </ul>
+    </section>
+  );
+}
+
 /** Kanal pemesanan aktif, selalu sinkron dengan Pengaturan di halaman Cara Pesan. */
 function OrderChannelsBlock({ s }: { s: PublicSettings }) {
   if (!s.waNumber && s.marketplaceStores.length === 0) return null;
@@ -100,7 +132,12 @@ function OrderChannelsBlock({ s }: { s: PublicSettings }) {
       </div>
       {s.serviceHours ? <p className="mt-4 text-sm">Jam layanan WhatsApp: {s.serviceHours}.</p> : null}
       <p className="mt-2 text-sm text-muted">
-        Hanya nomor dan toko di atas yang resmi. Kami tidak pernah meminta pembayaran ke rekening atas nama pribadi.
+        {s.marketplaceStores.length === 0
+          ? "Hanya nomor di atas yang resmi."
+          : s.waNumber
+            ? "Hanya nomor dan toko di atas yang resmi."
+            : "Hanya toko di atas yang resmi."}{" "}
+        Kami tidak pernah meminta pembayaran ke rekening atas nama pribadi.
       </p>
     </section>
   );
@@ -141,6 +178,7 @@ export default async function StaticPage({ params }: Props) {
 
         {page.slug === "tentang" ? <IdentityBlock s={settings} /> : null}
         {page.slug === "cara-pesan" ? <OrderChannelsBlock s={settings} /> : null}
+        {page.slug === "kirim-naskah" ? <ManuscriptContactBlock s={settings} /> : null}
       </div>
     </article>
   );

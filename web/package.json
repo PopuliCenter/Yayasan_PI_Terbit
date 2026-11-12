@@ -14,6 +14,7 @@
     "lint": "eslint",
     "payload": "payload",
     "seed": "payload run ./src/seed/index.ts",
+    "isi-konten": "payload run ./src/seed/isi-konten.ts",
     "generate:types": "payload generate:types",
     "generate:importmap": "payload generate:importmap",
     "migrate": "payload migrate",

@@ -33,7 +33,6 @@ const isAutosave = (req: PayloadRequest) =>
  */
 export const captureLivePath: CollectionBeforeChangeHook = async ({
   collection,
-  context,
   data,
   operation,
   originalDoc,
@@ -41,8 +40,10 @@ export const captureLivePath: CollectionBeforeChangeHook = async ({
 }) => {
   if (operation !== "update" || originalDoc?.id === undefined || !isRouted(collection.slug)) return data;
   const drafts = DRAFT_COLLECTIONS.has(collection.slug);
-  // Simpan draf tidak pernah mengubah alamat publik.
-  if (drafts && data?._status !== "published") return data;
+  // Simpan draf tidak pernah mengubah alamat publik. Payload selalu menandai simpan draf
+  // dengan _status "draft" sebelum hook jalan; tanpa _status (mis. Local API atau impor CSV
+  // dengan kolom _status kosong) baris utama tetap ditulis, jadi alamat tayang dicek.
+  if (drafts && data?._status === "draft") return data;
 
   const live: { slug?: unknown; _status?: unknown } | null = drafts
     ? await req.payload.findByID({
@@ -62,7 +63,11 @@ export const captureLivePath: CollectionBeforeChangeHook = async ({
     wasLive: Boolean(live && (!drafts || live._status === "published")),
     liveSlug,
   };
-  context[contextKey(collection.slug, originalDoc.id)] = info;
+  // Tulis ke req.context SEKARANG, bukan ke argumen `context`: Local API bersarang yang
+  // meneruskan `req` (findByID di atas) mengganti req.context dengan salinan baru
+  // (createLocalReq → getRequestContext). Hook afterChange menerima req.context terbaru,
+  // jadi kunci yang ditulis ke objek lama hilang dan pengalihan tidak pernah dibuat.
+  req.context[contextKey(collection.slug, originalDoc.id)] = info;
   return data;
 };
 
@@ -75,11 +80,11 @@ export const captureLivePath: CollectionBeforeChangeHook = async ({
  *   rantai; buildRedirectTable meratakannya ke tujuan akhir saat tabel dibangun.
  * Galat DB TIDAK ditelan: di Postgres satu perintah gagal membatalkan seluruh transaksi.
  */
-export const createSlugRedirect: CollectionAfterChangeHook = async ({ collection, context, doc, req }) => {
+export const createSlugRedirect: CollectionAfterChangeHook = async ({ collection, doc, req }) => {
   if (!isRouted(collection.slug) || !doc?.id) return doc;
   const k = contextKey(collection.slug, doc.id);
-  const info = context[k] as LiveInfo | undefined;
-  delete context[k];
+  const info = req.context[k] as LiveInfo | undefined;
+  delete req.context[k];
 
   const drafts = DRAFT_COLLECTIONS.has(collection.slug);
   if (drafts && doc._status !== "published") {

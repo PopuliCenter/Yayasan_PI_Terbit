@@ -11,7 +11,8 @@
 import { getPayload } from "payload";
 import config from "../payload.config";
 import { makeCover } from "./cover";
-import { doc, h2, ol, p, ul } from "./lexical";
+import { doc, ol, p } from "./lexical";
+import { terapkanKonten } from "./konten/terapkan";
 
 /** ISBN contoh fiktif dengan angka pemeriksa yang benar: 978-623-9999-NN-C. */
 const sampleIsbn = (n: number): string => {
@@ -111,7 +112,7 @@ await payload.updateGlobal({
       { platform: "shopee", url: "https://shopee.co.id/" },
     ],
     defaultMetaDescription:
-      "Katalog resmi buku terbitan Yayasan Populi Indonesia: kajian politik, demokrasi, dan kebijakan publik. Pesan lewat WhatsApp atau marketplace.",
+      "Katalog resmi buku terbitan Yayasan Populi Indonesia: kajian politik, demokrasi, dan kebijakan publik. Pesan lewat WhatsApp.",
   },
 });
 log("pengaturan situs diisi");
@@ -445,151 +446,9 @@ log(`${createdBooks.length} buku dengan sampul`);
 
 /* ------------------------------ halaman --------------------------------- */
 
-const DRAFT_LEGAL =
-  "Catatan: teks ini adalah draf kerja dan wajib ditinjau konsultan hukum sebelum situs dibuka untuk publik.";
-
-const pages = [
-  // Profil penerbit untuk verifikasi ISBN Perpusnas: Yayasan Populi Indonesia satu-satunya subjek
-  // penerbitan. Blok "Identitas penerbit" (alamat, kontak, legalitas) ditambahkan otomatis dari Pengaturan.
-  {
-    title: "Tentang Kami",
-    slug: "tentang",
-    footerOrder: 10,
-    summary:
-      "Yayasan Populi Indonesia adalah yayasan berbadan hukum di Jakarta yang menerbitkan buku kajian sosial, politik, dan kebijakan publik.",
-    content: doc(
-      p(
-        "Yayasan Populi Indonesia adalah badan hukum nirlaba berbentuk yayasan yang berkedudukan di Jakarta, disahkan dengan Keputusan Menteri Hukum dan Hak Asasi Manusia Republik Indonesia Nomor AHU-5475.AH.01.04.Tahun 2012. Yayasan Populi Indonesia menerbitkan buku di bidang sosial, politik, dan kebijakan publik. Situs ini adalah situs resmi Yayasan Populi Indonesia sekaligus katalog buku terbitannya.",
-      ),
-      h2("Kegiatan penerbitan"),
-      p(
-        "Yayasan Populi Indonesia menyelenggarakan kegiatan penelitian, pendidikan, pengembangan pengetahuan, dan penerbitan. Penerbitan buku dijalankan langsung oleh Yayasan Populi Indonesia sebagai penerbit. Buku yang kami terbitkan ditujukan untuk pembaca umum, yaitu:",
-      ),
-      ul([
-        "buku yang dikembangkan dari hasil penelitian dan disajikan dalam bentuk buku;",
-        "buku kajian sosial dan politik, antara lain tentang kepemimpinan, perilaku pemilih, pemilihan umum, dan demokrasi;",
-        "buku analisis kebijakan publik;",
-        "karya ilmiah lain yang sesuai dengan bidang kajian yayasan.",
-      ]),
-      h2("Tanggung jawab penerbit"),
-      p(
-        "Yayasan Populi Indonesia bertanggung jawab atas penyuntingan, produksi, dan distribusi setiap buku terbitannya, termasuk pengajuan International Standard Book Number (ISBN). Pada sampul, halaman judul, dan halaman hak cipta setiap buku, penerbit tercantum sebagai Yayasan Populi Indonesia.",
-      ),
-      h2("Naskah"),
-      p("Kami menerima naskah yang sesuai dengan bidang terbitan di atas. Ketentuan dan cara pengirimannya ada di halaman Kirim Naskah."),
-      h2("Susunan organ yayasan dan redaksi"),
-      ul([
-        "Pembina: [nama]",
-        "Pengurus: Ketua [nama]; Sekretaris [nama]; Bendahara [nama]",
-        "Pengawas: [nama]",
-        "Penanggung jawab penerbitan: [nama, jabatan]",
-        "Penyunting: [nama]",
-      ]),
-      h2("Katalog dan cara memperoleh buku"),
-      p(
-        "Semua buku terbitan Yayasan Populi Indonesia tercantum di halaman Katalog. Setiap judul memiliki halaman sendiri yang memuat sampul, judul, penulis, penerbit, ISBN, dan sinopsis. Buku dapat dipesan lewat WhatsApp resmi atau toko resmi kami di marketplace; tata caranya ada di halaman Cara Pesan.",
-      ),
-      p("Identitas lengkap penerbit, termasuk alamat, kontak, dan legalitas, tercantum di bawah ini."),
-    ),
-  },
-  {
-    title: "Cara Pesan",
-    slug: "cara-pesan",
-    footerOrder: 20,
-    summary: "Cara memesan buku lewat WhatsApp atau marketplace, pembayaran, ongkir, dan penukaran barang rusak.",
-    policyVersion: "0.1",
-    content: doc(
-      h2("Pesan lewat WhatsApp"),
-      ol([
-        "Buka halaman buku, lalu tekan tombol Pesan via WhatsApp. Pesan berisi judul dan harga akan terisi otomatis.",
-        "Tulis kota tujuan dan jumlah buku. Admin membalas dengan total harga dan ongkir.",
-        "Lakukan pembayaran lewat transfer ke rekening atas nama badan yang disebutkan admin, lalu kirim bukti transfer.",
-        "Buku dikemas dan dikirim. Nomor resi kami kirim lewat WhatsApp.",
-      ]),
-      h2("Pesan lewat marketplace"),
-      p(
-        "Sebagian judul juga tersedia di toko resmi kami di marketplace. Transaksi, pembayaran, dan pengiriman sepenuhnya mengikuti ketentuan marketplace tersebut. Harga di marketplace dapat berbeda dari harga penerbit.",
-      ),
-      h2("Ongkos kirim"),
-      p("Ongkir dihitung dari berat buku ditambah kemasan, dan dikonfirmasi kepada Anda sebelum pembayaran."),
-      h2("Barang rusak atau salah kirim"),
-      p(
-        "Bila buku yang Anda terima rusak, cacat cetak, atau tidak sesuai pesanan, hubungi kami paling lambat 7 hari kalender sejak diterima dengan menyertakan foto. Kami akan mengganti buku atau mengembalikan dana, sesuai pilihan Anda, dan ongkos kirim balik kami tanggung.",
-      ),
-      p(DRAFT_LEGAL),
-    ),
-  },
-  {
-    title: "Kebijakan Privasi",
-    slug: "kebijakan-privasi",
-    footerOrder: 30,
-    summary: "Data pribadi apa yang kami kumpulkan, untuk apa, berapa lama disimpan, dan hak Anda.",
-    policyVersion: "0.1",
-    content: doc(
-      p(DRAFT_LEGAL),
-      h2("Data yang kami kumpulkan"),
-      ul([
-        "Isi formulir kontak, pengaduan, dan penawaran institusi: nama, email, telepon, dan pesan Anda.",
-        "Email untuk kabar terbitan, hanya bila Anda mencentang persetujuan.",
-        "Data pemesanan lewat WhatsApp yang dicatat admin: nama, kontak, alamat kirim, dan rincian pembayaran.",
-      ]),
-      p(
-        "Situs ini tidak menyimpan data kartu pembayaran. Klik tombol pesan dicatat tanpa alamat IP atau pengenal pribadi apa pun.",
-      ),
-      h2("Hak Anda"),
-      p(
-        "Anda berhak meminta akses, perbaikan, atau penghapusan data pribadi Anda, dan mencabut persetujuan kapan saja. Kami menanggapi permintaan paling lambat 3 x 24 jam lewat halaman Kontak.",
-      ),
-      h2("Penyimpanan dan pihak ketiga"),
-      p("[Daftar lokasi data dan vendor — isi setelah inventarisasi vendor selesai (PRD bagian 10).]"),
-    ),
-  },
-  {
-    title: "Ketentuan Penggunaan",
-    slug: "ketentuan-penggunaan",
-    footerOrder: 40,
-    summary: "Ketentuan penggunaan situs katalog Yayasan Populi Indonesia.",
-    policyVersion: "0.1",
-    content: doc(
-      p(DRAFT_LEGAL),
-      p(
-        "Situs ini menyajikan katalog dan informasi buku terbitan kami. Pemesanan dan pembayaran tidak dilakukan di situs ini, melainkan lewat WhatsApp resmi atau toko resmi di marketplace sebagaimana tercantum di halaman Cara Pesan.",
-      ),
-    ),
-  },
-  {
-    title: "Kirim Naskah",
-    slug: "kirim-naskah",
-    footerOrder: 50,
-    summary: "Syarat dan cara mengirim naskah ke Yayasan Populi Indonesia.",
-    content: doc(
-      p("Yayasan Populi Indonesia menerima naskah buku di bidang sosial, politik, dan kebijakan publik untuk pembaca umum. Laporan penelitian perlu lebih dulu disusun ulang menjadi buku."),
-      h2("Yang perlu disiapkan"),
-      ul([
-        "Ringkasan naskah 1–2 halaman",
-        "Daftar isi",
-        "Satu bab contoh",
-        "Profil singkat penulis",
-      ]),
-      p("Kirim ringkasan lewat halaman Kontak dengan memilih jenis pesan Kirim naskah. Kami akan membalas dengan cara mengirim naskah lengkap."),
-    ),
-  },
-];
-
-for (const pg of pages) {
-  await payload.create({
-    collection: "pages",
-    overrideAccess: true,
-    draft: false,
-    data: {
-      ...pg,
-      showInFooter: true,
-      policyEffectiveDate: pg.policyVersion ? new Date().toISOString() : undefined,
-      _status: "published",
-    },
-  });
-}
-log(`${pages.length} halaman`);
+// Teks halaman resmi dan formulir retur (sumber yang sama dengan `npm run isi-konten`), di sini langsung tayang.
+const konten = await terapkanKonten(payload, { tayang: true, timpa: false, pengaturan: false, log });
+log(`${konten.dibuat.length} halaman`);
 
 /* -------------------------------- kabar --------------------------------- */
 

@@ -29,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const description =
     s.defaultMetaDescription ||
     s.tagline ||
-    "Katalog resmi buku terbitan Yayasan Populi Indonesia. Pesan langsung lewat WhatsApp atau marketplace.";
+    "Katalog resmi buku terbitan Yayasan Populi Indonesia. Pesan langsung lewat WhatsApp.";
   return {
     metadataBase: new URL(SITE_URL),
     title: { default: `${s.siteName} — Penerbit buku`, template: `%s — ${s.siteName}` },

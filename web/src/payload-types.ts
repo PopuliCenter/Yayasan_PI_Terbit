@@ -443,7 +443,7 @@ export interface SeoMeta {
   image?: (number | null) | Media;
 }
 /**
- * Halaman statis: Tentang, Cara Pesan, Kebijakan Privasi, Ketentuan Penggunaan, Kirim Naskah.
+ * Halaman statis: Tentang Kami, Cara Pesan, Pengiriman, Pengembalian & Penukaran, Kebijakan Privasi, Syarat & Ketentuan, Kirim Naskah.
  *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "pages".
@@ -2043,6 +2043,10 @@ export interface Setting {
   email?: string | null;
   phone?: string | null;
   /**
+   * Opsional. Tampil di halaman Kontak dan Kirim Naskah sebagai alamat pengiriman naskah. Kosong: dipakai email layanan pelanggan. Isi hanya setelah alamatnya aktif menerima email (mis. sudah dibuat di Cloudflare Email Routing).
+   */
+  editorialEmail?: string | null;
+  /**
    * Contoh: Senin–Jumat, 09.00–17.00 WIB.
    */
   serviceHours?: string | null;
@@ -2497,6 +2501,7 @@ export interface SettingsSelect<T extends boolean = true> {
   waNumber?: T;
   email?: T;
   phone?: T;
+  editorialEmail?: T;
   serviceHours?: T;
   waResponseTarget?: T;
   complaintResponseTarget?: T;

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { BotFields } from "@/components/forms/BotFields";
 import { InquiryForm } from "@/components/forms/InquiryForm";
@@ -63,6 +64,16 @@ export default async function ContactPage({ searchParams }: Props) {
                   </dd>
                 </div>
               ) : null}
+              {settings.editorialEmail && settings.editorialEmail !== settings.email ? (
+                <div>
+                  <dt className="text-sm text-muted">Email redaksi (naskah)</dt>
+                  <dd>
+                    <a href={`mailto:${settings.editorialEmail}`} className="link">
+                      {settings.editorialEmail}
+                    </a>
+                  </dd>
+                </div>
+              ) : null}
               {settings.phone ? (
                 <div>
                   <dt className="text-sm text-muted">Telepon</dt>
@@ -90,7 +101,14 @@ export default async function ContactPage({ searchParams }: Props) {
             </h2>
             <ol className="mt-3 list-decimal space-y-2 pl-5 text-[0.95rem]">
               <li>Kirim pengaduan lewat formulir ini (pilih “Pengaduan”), WhatsApp, atau email.</li>
-              <li>Sertakan nomor pesanan atau tanggal pembelian, serta foto bila ada kerusakan.</li>
+              <li>
+                Sertakan nomor pesanan atau tanggal pembelian, serta foto bila ada kerusakan. Untuk buku rusak, cacat,
+                atau salah kirim, lihat juga{" "}
+                <Link href="/pengembalian" className="link">
+                  ketentuan pengembalian dan penukaran
+                </Link>
+                .
+              </li>
               <li>
                 Kami menanggapi <strong>{settings.complaintResponseTarget || "maksimal 2 hari kerja"}</strong> dan
                 menyampaikan penyelesaiannya: penggantian barang atau pengembalian dana.
