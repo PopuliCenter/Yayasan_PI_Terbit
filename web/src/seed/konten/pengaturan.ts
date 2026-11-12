@@ -15,7 +15,7 @@ export const PENGATURAN_PASTI = {
   legalEntityName: "Yayasan Populi Indonesia",
   legalBasis:
     "Keputusan Menteri Hukum dan Hak Asasi Manusia Republik Indonesia Nomor AHU-5475.AH.01.04.Tahun 2012",
-  address: "Jl. Cipinang Asem No. 1, Kebon Pala, Makasar, Jakarta Timur 13650",
+  address: "Jalan Mampang Prapatan VIII No.38, Tegal Parang, Mampang Prapatan, Jakarta Selatan DKI Jakarta 12790",
   nib: "0702230061964",
   // Halaman Kontak sudah menampilkan nama Ditjen PKTN sebagai judul; ini isi di bawahnya.
   // Sumber: siaran pers Kemendag 15 Juli 2026 dan ditjenpktn.kemendag.go.id.

@@ -494,9 +494,9 @@ const KEBIJAKAN_PRIVASI: DefHalaman = {
       t: "ul",
       items: [
         "Yayasan Populi Indonesia, badan hukum yayasan berdasarkan Keputusan Menteri Hukum dan HAM RI Nomor AHU-5475.AH.01.04.Tahun 2012",
-        "Alamat: Jl. Cipinang Asem No. 1, Kebon Pala, Makasar, Jakarta Timur 13650",
+        "Alamat: Jalan Mampang Prapatan VIII No.38, Tegal Parang, Mampang Prapatan, Jakarta Selatan DKI Jakarta 12790",
         "Email: penerbit@yayasanpopuliindonesia.org",
-        "Telepon dan WhatsApp: satu nomor resmi yang tercantum di halaman [Kontak](/kontak)",
+        "Telepon kantor dan WhatsApp: tercantum di halaman [Kontak](/kontak)",
       ],
     },
     {
@@ -825,7 +825,7 @@ const SYARAT_KETENTUAN: DefHalaman = {
     },
     {
       t: "p",
-      text: "Situs ini dikelola oleh Yayasan Populi Indonesia, badan hukum yayasan yang berkedudukan di Jakarta. Yayasan disahkan dengan Keputusan Menteri Hukum dan HAM RI Nomor AHU-5475.AH.01.04.Tahun 2012. Yayasan memiliki NIB 0702230061964 dengan KBLI 58110 (penerbitan buku) dan berkantor di Jl. Cipinang Asem No. 1, Kebon Pala, Makasar, Jakarta Timur 13650.",
+      text: "Situs ini dikelola oleh Yayasan Populi Indonesia, badan hukum yayasan yang berkedudukan di Jakarta. Yayasan disahkan dengan Keputusan Menteri Hukum dan HAM RI Nomor AHU-5475.AH.01.04.Tahun 2012. Yayasan memiliki NIB 0702230061964 dengan KBLI 58110 (penerbitan buku) dan berkantor di Jalan Mampang Prapatan VIII No.38, Tegal Parang, Mampang Prapatan, Jakarta Selatan DKI Jakarta 12790.",
     },
     {
       t: "p",

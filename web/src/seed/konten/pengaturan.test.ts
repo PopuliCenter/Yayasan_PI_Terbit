@@ -8,7 +8,7 @@ describe("pengaturan situs", () => {
     assert.equal(isPlaceholder(null), true);
     assert.equal(isPlaceholder("[Alamat kantor — isi dari Pengaturan Situs]"), true);
     assert.equal(isPlaceholder("penerbit@contoh.test"), true);
-    assert.equal(isPlaceholder("Jl. Cipinang Asem No. 1"), false);
+    assert.equal(isPlaceholder("Jalan Mampang Prapatan VIII No.38"), false);
   });
 
   it("telepon dari nomor WhatsApp", () => {
